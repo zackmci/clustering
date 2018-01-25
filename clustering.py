@@ -1,16 +1,37 @@
+#######################################################################################################################
+#  clustering.py
+#
+#  Calculating R, L(r), and g(r)
+#
+#  Date 12/20/2017 
+#
+#  Last Modified 1/25/2018
+#
+#
+#######################################################################################################################
+# importing the needed modules
+
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.mlab import griddata
 
+#######################################################################################################################
+# variables for reading and writing files
+
 csvarray = []
-timestep = '1100'
+timestep = '80'
 filelocation = '/Users/zack/Documents/csv_data_files/'
 filename = 'box512_ht_1_loc'
 resfile = 'box512_ht_1_res'
 tablename = '_minimum_distance'
 lrdata = '_lr_kr_'
 grdata = '_gr_'
+
+#######################################################################################################################
+# Opening and reading the csv files from the simulations
+
+# particle data
 with open(filelocation + filename + '.' + timestep + '.csv', 'r') as csvfile:
     csv_data = list(csv.reader(csvfile, delimiter=","))
 #print (csv_data[:3])
@@ -19,12 +40,14 @@ csvarray = np.array(csv_data[1:], dtype=np.float) # Remove headers and convert t
 
 original_part_num = len(csvarray)
 
-
-
-
+# fluid data
 with open(filelocation + resfile + '.' + timestep + '.csv', 'r') as csvres:
     res_data = list(csv.reader(csvres, delimiter=","))
 resarray = np.array(res_data[1:], dtype=np.float)
+
+#######################################################################################################################
+# Seperating the particles into two arrays based on volume fraction.  One array is the 
+# settled bed, and the other is of the particles still settling.
 
 vol_frac = 0.46
 box_dist = 5
@@ -53,9 +76,9 @@ for posindex in range(0, len(csvarray)):
             distarray = volarray[volindex]
     distarray = np.array(distarray)
     if 1-distarray[0] >= vol_frac:
-        part_high_vol_array.append(csvarray[posindex])
+        part_high_vol_array.append(csvarray[posindex]) # Settled bed
     else:
-        part_low_vol_array.append(csvarray[posindex])
+        part_low_vol_array.append(csvarray[posindex]) # Still settling
 
 csvarray = np.array(part_low_vol_array)
 part_high_vol_array = np.array(part_high_vol_array)
@@ -63,12 +86,14 @@ part_high_vol_array = np.array(part_high_vol_array)
 x_len = 512 # Length of x axis
 y_len = max(csvarray[:, 8]) # height of the heighest particle.
 
+# Some more variables to be taken from the new array
 new_part_num = len(csvarray)
 difference = original_part_num - new_part_num
 x = csvarray[:,7]
 y = csvarray[:,8]
 rad = np.mean(csvarray[:, 1])/2
 
+#######################################################################################################################
 # Calculating the area of the settled bed
 if len(part_high_vol_array) > 0:
     part_west = []
@@ -100,6 +125,7 @@ if len(part_high_vol_array) > 0:
 else:
     total_area = 0
 
+#######################################################################################################################
 # A function that creates an array of the particles within a set distance from the selected particle
 
 def domain_reduction(arr, j, x, y, radius):
@@ -117,11 +143,9 @@ def domain_reduction(arr, j, x, y, radius):
     arr_red = np.array(arr_red)
     #print (arr_red)
     return arr_red
-    
 
-
-
-	# Creating an array of the nearest neighbors and which particles are the nearest.
+#######################################################################################################################
+# Creating an array of the nearest neighbors and which particles are the nearest.
 
 #print (num_of_it)
 min_array = []
@@ -157,19 +181,21 @@ for i in range(0, new_part_num):
 min_array = np.array(min_array)
 #print (min_array)
 
+#######################################################################################################################
 # Writing nearest neighbor data to csv
-
 
 with open(filelocation + filename + tablename + '.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(['original particle', 'nearest neighbor', 'distance'])
     writer.writerows(min_array)
 
+#######################################################################################################################
 # Finding the mean distance rA
 
 #print(min_array[:, 2])
 rA = np.mean(min_array[:, 2])
 
+#######################################################################################################################
 # Calculating rE the expected value
 
 # Intensity with the area of the settled particles taken into consideration
@@ -177,14 +203,20 @@ lam = new_part_num / ((x_len * y_len) - total_area)
 
 rE = 1 / (2 * np.sqrt(lam))
 
+#######################################################################################################################
+# Calculating the R value rA/rE
+
 R = rA / rE
+
+#######################################################################################################################
+# Writing rA, rE, and R to a csv file
 
 with open(filelocation + filename + '_R.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(['rA', 'rE', 'R'])
     writer.writerow([rA, rE, R])
 
-
+#######################################################################################################################
 # The purpose of this function is to calculate the distance between the selected particle and all the other particles.
 # To do this an array of particles is created where the particles are all within a distance slightly greater than the
 # radius of interest.  Anoter array is created that has only the particles within the defined radius, and the number
@@ -229,7 +261,8 @@ def part_in_rad(arr, part_num, x_val, y_val, radius):
     else:
         return Np
 
-
+#######################################################################################################################
+# Calculating Ripley's K and L values.
 
 Kr = []
 
@@ -265,11 +298,11 @@ for i in radius:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
             if csvarray[n, 7] >= i  and csvarray[n, 7] < min_x_east  and \
-            csvarray[n, 8] >= max_y_east and csvarray[n, 8] <= y_len - i:                     
+            csvarray[n, 8] >= max_y_east and csvarray[n, 8] <= y_len - i:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
             if csvarray[n, 7] >= i and csvarray[n, 7] <= min_x_east - i and \
-            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_east:                     
+            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_east:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
         elif len(part_west) > 0 and len(part_east) == 0:
@@ -278,24 +311,24 @@ for i in radius:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
             if csvarray[n, 7] >= max_x_west and csvarray[n, 7] < x_len - i  and \
-            csvarray[n, 8] >= i and csvarray[n, 8] <= y_len - i:                     
+            csvarray[n, 8] >= i and csvarray[n, 8] <= y_len - i:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
             if csvarray[n, 7] >= max_x_west + i and csvarray[n, 7] <= x_len -  i and \
-            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_west:                     
+            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_west:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr.append(num_part / lam)        
+                kr.append(num_part / lam)
         else:
             if csvarray[n, 7] >= i and csvarray[n, 7] <= max_x_west and \
             csvarray[n, 8] >= max_y_west + i and csvarray[n, 8] <= y_len - i:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
             if csvarray[n, 7] > max_x_west and csvarray[n, 7] <= x_len - i and \
-            csvarray[n, 8] >= max_y_east + i and csvarray[n, 8] <= y_len - i:                     
+            csvarray[n, 8] >= max_y_east + i and csvarray[n, 8] <= y_len - i:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
             if csvarray[n, 7] >= max_x_west + i and csvarray[n, 7] <= min_x_east - i and \
-            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_east:                     
+            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_east:
                 num_part = part_in_rad(csvarray, n, 7, 8, i)
                 kr.append(num_part / lam)
     Kr.append(np.mean(kr))
@@ -308,11 +341,15 @@ Kr[0] = 0
 
 Lr = np.sqrt(Kr / np.pi)
 
+#######################################################################################################################
+# Writing L(r) and K(r) to a csv file
 
 with open(filelocation + filename + lrdata + '.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerows([Lr, Kr])
 
+#######################################################################################################################
+# Plotting L(r) vs radius
 
 fig=plt.figure(figsize=(9,9))
 plt.plot(radius, Lr, 'r*-')
@@ -322,6 +359,9 @@ plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('L(r)', fontsize = 18)
 plt.savefig(filelocation + filename + '_lr.' + timestep + '.svg', format='svg')
 
+#######################################################################################################################
+# Calulating Ripley's g value
+
 gr = []
 
 for i in range(1, len(radius)):
@@ -330,10 +370,15 @@ for i in range(1, len(radius)):
     gr.append(dkr / (2 * np.pi * radius[i]))
 gr = np.array(gr)
 
+#######################################################################################################################
+# writing g(r) to a csv file
+
 with open(filelocation + filename + grdata + '.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(gr)
 
+#######################################################################################################################
+# Plotting g(r) vs radius
 
 fig=plt.figure(figsize=(9,9))
 plt.plot(radius[1:len(radius)], gr, 'bo-')
