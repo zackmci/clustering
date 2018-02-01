@@ -3,7 +3,7 @@
 #
 #  Calculating R, L(r), and g(r) using parallel processing
 #
-#  Date 12/20/2017 
+#  Date 2/1/2018 
 #
 #  Last Modified 1/30/2018
 #
