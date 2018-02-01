@@ -92,6 +92,7 @@ def settling_array(posindex):
     
 #######################################################################################################################
 # calling settling_array()
+
 start = time.time()
 pool = mp.Pool(processes=5)
 result = pool.map(settling_array, range(0, original_part_num)) 
@@ -120,6 +121,7 @@ rad = np.mean(csvarray[:, 1])/2
 
 #######################################################################################################################
 # Calculating the area of the settled bed
+
 if len(part_high_vol_array) > 0:
     part_west = []
     part_east = []
