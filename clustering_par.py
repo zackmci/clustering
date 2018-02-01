@@ -96,12 +96,12 @@ def settling_array(posindex):
 start = time.time()
 pool = mp.Pool(processes=5)
 result = pool.map(settling_array, range(0, original_part_num)) 
-pool.close()
-pool.join()
 csvarray = result[:, 0]
 csvarray = csvarray[csvarray != np.array(None)]
 part_high_vol_array = result[:, 1]
 part_high_vol_array = part_high_vol_array[part_high_vol_array != np.array(None)]
+pool.close()
+pool.join()
 end = time.time()
 os.system('spd-say "particles are seperated into high volume franction and low volume fraction arrays"')
 print ('two arrays created in: ', end - start)
@@ -213,9 +213,9 @@ def near_neigh(i):
 start = time.time()
 pool = mp.Pool(processes=5)
 result = pool.map(near_neigh, range(0, new_part_num)) 
+min_array = np.array(result)
 pool.close()
 pool.join()
-min_array = np.array(result)
 end = time.time()
 os.system('spd-say "Nearest neighbor found"')
 print ('Nearest neighbor found in: ', end - start)
@@ -380,9 +380,9 @@ def ripley_k(i):
 start = time.time()
 pool = mp.Pool(processes=5)
 result = [pool.apply(ripley_k, args =  i) for i in radius] 
+Kr = np.array(result)
 pool.close()
 pool.join()
-Kr = np.array(result)
 end = time.time()
 os.system('spd-say "Ripleys k value found. "')
 print ('Nearest neighbor found in: ', end - start)
