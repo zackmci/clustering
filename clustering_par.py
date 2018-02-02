@@ -109,13 +109,13 @@ part_high_vol_array = part_high_vol_array[part_high_vol_array != np.array(None)]
 if len(part_high_vol_array) > 0: 
     part_high_vol_array = np.vstack(part_high_vol_array)
 end = time.time()
-os.system('spd-say "particles are seperated into high volume franction and low volume fraction arrays"')
+os.system('spd-say "first annoying noise"')
 print ('two arrays created in: ', end - start)
 
 #######################################################################################################################
 # variables
 
-x_len = 28 # Length of x axis
+x_len = 512 # Length of x axis
 y_len = max(csvarray[:, 8]) # height of the heighest particle.
 
 # Some more variables to be taken from the new array
@@ -224,7 +224,7 @@ pool.close()
 pool.join()
 min_array = np.array(result)
 end = time.time()
-os.system('spd-say "Nearest neighbor found"')
+os.system('spd-say "annoying noise two"')
 print ('Nearest neighbor found in: ', end - start)
 
 
@@ -391,7 +391,7 @@ pool.close()
 pool.join()
 Kr = np.array(result)
 end = time.time()
-os.system('spd-say "Ripleys k value found. "')
+os.system('spd-say "annoying noise again "')
 print ("ripley's k value found in: ", end - start)
 
 # This is to correct for overlapping particles where the distance between
