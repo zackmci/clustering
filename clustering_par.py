@@ -23,11 +23,12 @@ import time
 # variables for reading and writing files
 
 csv_array = []
-timestep = '80'
+timestep = '0'
 filelocation = '/wd2/csv_data_files/'
+#filelocation = '/home/zack/Documents/csv_data_files/'
 savelocation = '/home/zack/Documents/csv_data_files/'
-filename = 'box512_ht_loc'
-resfile = 'box512_ht_res'
+filename = 'box512_random_loc'
+resfile = 'box512_random_res'
 tablename = '_minimum_distance'
 lrdata = '_lr_kr_'
 grdata = '_gr_'
@@ -88,7 +89,7 @@ def settling_array(posindex):
         part_low_vol_array = csv_array[posindex] # Still settling
         part_high_vol_array = None
 
-    return part_low_vol_array, part_high_vol_array
+    return [part_low_vol_array, part_high_vol_array]
     
 #######################################################################################################################
 # calling settling_array()
@@ -96,12 +97,17 @@ def settling_array(posindex):
 start = time.time()
 pool = mp.Pool(processes=5)
 result = pool.map(settling_array, range(0, original_part_num)) 
-csvarray = result[:, 0]
-csvarray = csvarray[csvarray != np.array(None)]
-part_high_vol_array = result[:, 1]
-part_high_vol_array = part_high_vol_array[part_high_vol_array != np.array(None)]
+result = np.array(result)
+#print (result)
 pool.close()
 pool.join()
+csvarray = result[:, 0]
+csvarray = csvarray[csvarray != np.array(None)]
+csvarray = np.vstack(csvarray)
+part_high_vol_array = result[:, 1]
+part_high_vol_array = part_high_vol_array[part_high_vol_array != np.array(None)]
+if len(part_high_vol_array) > 0: 
+    part_high_vol_array = np.vstack(part_high_vol_array)
 end = time.time()
 os.system('spd-say "particles are seperated into high volume franction and low volume fraction arrays"')
 print ('two arrays created in: ', end - start)
@@ -109,7 +115,7 @@ print ('two arrays created in: ', end - start)
 #######################################################################################################################
 # variables
 
-x_len = 512 # Length of x axis
+x_len = 28 # Length of x axis
 y_len = max(csvarray[:, 8]) # height of the heighest particle.
 
 # Some more variables to be taken from the new array
@@ -212,10 +218,11 @@ def near_neigh(i):
 
 start = time.time()
 pool = mp.Pool(processes=5)
-result = pool.map(near_neigh, range(0, new_part_num)) 
-min_array = np.array(result)
+result = pool.map(near_neigh, range(0, new_part_num))
+result = np.array(result) 
 pool.close()
 pool.join()
+min_array = np.array(result)
 end = time.time()
 os.system('spd-say "Nearest neighbor found"')
 print ('Nearest neighbor found in: ', end - start)
@@ -240,7 +247,7 @@ rA = np.mean(min_array[:, 2])
 # Calculating rE the expected value
 
 # Intensity with the area of the settled particles taken into consideration
-lam = new_part_num / ((x_len * y_len) - total_area) 
+lam = new_part_num / ((x_len * y_len) - total_area)  
 
 rE = 1 / (2 * np.sqrt(lam))
 
@@ -307,85 +314,85 @@ def part_in_rad(arr, part_num, x_val, y_val, radius):
 
 radius = [rad]
 index_rad = 0
-while (radius[index_rad] <(y_len - (total_area / (x_len - 32)))/2  - (rad * 4) and radius[index_rad] < 7):
+while radius[index_rad] < ((y_len - min(csvarray[:, 8])) / 2 - (rad * 4)) and radius[index_rad] < 7:
     index_rad = index_rad + 1
     radius.append(rad * (index_rad + 1))
 radius = np.array(radius)
+print (y_len,'\n',  min(csvarray[:, 8]), '\n', radius)
 
 #######################################################################################################################
 # Calculating Ripley's K and L values.
 
 def ripley_k(i):
 
+    kr = []
+
     for n in range(0, new_part_num):
-        #print (n)
         # This if statement is to correct for edge effects.  If the particle surface is within range of the edge
         # of the domain the particle is not used as a source, but can be counted as within the radial distance
         # of another particle.
         if len(part_high_vol_array) == 0:
-            if csvarray[n, 7] >= i and csvarray[n, 7] <= x_len - i and \
-            csvarray[n, 8] >= i and csvarray[n, 8] <= y_len - i:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                #arr.append(num_part)
-                #np.append(arr, num_part)
-                #print (arr)
-                #particle = len(arr)
+            if csvarray[n, 7] >= radius[i] and csvarray[n, 7] <= x_len - radius[i] and \
+            csvarray[n, 8] >= radius[i] and csvarray[n, 8] <= y_len - radius[i]:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
-                #print (kr)
         elif len(part_west) == 0 and len(part_east) > 0:
-            if csvarray[n, 7] >= min_x_east and csvarray[n, 7] <= x_len - i and \
-            csvarray[n, 8] >= max_y_east + i and csvarray[n, 8] <= y_len - i:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
-            if csvarray[n, 7] >= i  and csvarray[n, 7] < min_x_east  and \
-            csvarray[n, 8] >= max_y_east and csvarray[n, 8] <= y_len - i:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
-            if csvarray[n, 7] >= i and csvarray[n, 7] <= min_x_east - i and \
-            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_east:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
+            if csvarray[n, 7] >= min_x_east and csvarray[n, 7] <= x_len - radius[i] and \
+            csvarray[n, 8] >= max_y_east + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
+            if csvarray[n, 7] >= radius[i]  and csvarray[n, 7] < min_x_east  and \
+            csvarray[n, 8] >= max_y_east and csvarray[n, 8] <= y_len - radius[i]:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
+            if csvarray[n, 7] >= radius[i] and csvarray[n, 7] <= min_x_east - radius[i] and \
+            csvarray[n, 8] >= radius[i] and csvarray[n, 8] < max_y_east:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
         elif len(part_west) > 0 and len(part_east) == 0:
-            if csvarray[n, 7] >= i and csvarray[n, 7] < max_x_west and \
-            csvarray[n, 8] >= max_y_west + i and csvarray[n, 8] <= y_len - i:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
-            if csvarray[n, 7] >= max_x_west and csvarray[n, 7] < x_len - i  and \
-            csvarray[n, 8] >= i and csvarray[n, 8] <= y_len - i:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
-            if csvarray[n, 7] >= max_x_west + i and csvarray[n, 7] <= x_len -  i and \
-            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_west:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
+            if csvarray[n, 7] >= radius[i] and csvarray[n, 7] < max_x_west and \
+            csvarray[n, 8] >= max_y_west + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
+            if csvarray[n, 7] >= max_x_west and csvarray[n, 7] < x_len - radius[i]  and \
+            csvarray[n, 8] >= radius[i] and csvarray[n, 8] <= y_len - radius[i]:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
+            if csvarray[n, 7] >= max_x_west + radius[i] and csvarray[n, 7] <= x_len -  radius[i] and \
+            csvarray[n, 8] >= radius[i] and csvarray[n, 8] < max_y_west:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
         else:
-            if csvarray[n, 7] >= i and csvarray[n, 7] <= max_x_west and \
-            csvarray[n, 8] >= max_y_west + i and csvarray[n, 8] <= y_len - i:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
-            if csvarray[n, 7] > max_x_west and csvarray[n, 7] <= x_len - i and \
-            csvarray[n, 8] >= max_y_east + i and csvarray[n, 8] <= y_len - i:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
-            if csvarray[n, 7] >= max_x_west + i and csvarray[n, 7] <= min_x_east - i and \
-            csvarray[n, 8] >= i and csvarray[n, 8] < max_y_east:
-                num_part = part_in_rad(csvarray, n, 7, 8, i)
-                kr = num_part / lam
+            if csvarray[n, 7] >= radius[i] and csvarray[n, 7] <= max_x_west and \
+            csvarray[n, 8] >= max_y_west + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
+            if csvarray[n, 7] > max_x_west and csvarray[n, 7] <= x_len - radius[i] and \
+            csvarray[n, 8] >= max_y_east + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
+            if csvarray[n, 7] >= max_x_west + radius[i] and csvarray[n, 7] <= min_x_east - radius[i] and \
+            csvarray[n, 8] >= radius[i] and csvarray[n, 8] < max_y_east:
+                num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
+                kr.append(num_part / lam)
 
-    return kr
+    Kr = np.mean(kr)
+
+    return Kr
 
 #######################################################################################################################
 # calling ripleys_k and calculating Lr
 
 start = time.time()
 pool = mp.Pool(processes=5)
-result = [pool.apply(ripley_k, args =  i) for i in radius] 
-Kr = np.array(result)
+result = [pool.apply(ripley_k, args =  (i,)) for i in range(0, len(radius))]
+result = np.array(result) 
 pool.close()
 pool.join()
+Kr = np.array(result)
 end = time.time()
 os.system('spd-say "Ripleys k value found. "')
-print ('Nearest neighbor found in: ', end - start)
+print ("ripley's k value found in: ", end - start)
 
 # This is to correct for overlapping particles where the distance between
 # particles in the simulation could be less than 0.
