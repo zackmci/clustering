@@ -20,10 +20,18 @@ from matplotlib.mlab import griddata
 # variables for reading and writing files
 
 csvarray = []
+<<<<<<< HEAD
 timestep = '160'
 filelocation = '/Users/zack/Documents/csv_data_files/'
 filename = 'box512_ht_1_loc'
 resfile = 'box512_ht_1_res'
+=======
+timestep = '80'
+filelocation = '/wd2/csv_data_files/'
+savelocation = '/home/zack/Documents/csv_data_files/'
+filename = 'box512_ht_loc'
+resfile = 'box512_ht_res'
+>>>>>>> a95313cb3d6a7e89d11e40a8ffbe2df22f894479
 tablename = '_minimum_distance'
 lrdata = '_lr_kr_'
 grdata = '_gr_'
@@ -184,7 +192,7 @@ min_array = np.array(min_array)
 #######################################################################################################################
 # Writing nearest neighbor data to csv
 
-with open(filelocation + filename + tablename + '.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + tablename + '.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(['original particle', 'nearest neighbor', 'distance'])
     writer.writerows(min_array)
@@ -211,7 +219,7 @@ R = rA / rE
 #######################################################################################################################
 # Writing rA, rE, and R to a csv file
 
-with open(filelocation + filename + '_R.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + '_R.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(['rA', 'rE', 'R'])
     writer.writerow([rA, rE, R])
@@ -344,7 +352,7 @@ Lr = np.sqrt(Kr / np.pi)
 #######################################################################################################################
 # Writing L(r) and K(r) to a csv file
 
-with open(filelocation + filename + lrdata + '.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + lrdata + '.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerows([Lr, Kr])
 
@@ -357,7 +365,7 @@ plt.plot(radius, radius, 'k-')
 plt.title("Ripley's L value", fontsize = 18 )
 plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('L(r)', fontsize = 18)
-plt.savefig(filelocation + filename + '_lr.' + timestep + '.svg', format='svg')
+plt.savefig(savelocation + filename + '_lr.' + timestep + '.svg', format='svg')
 
 #######################################################################################################################
 # Calulating Ripley's g value
@@ -373,7 +381,7 @@ gr = np.array(gr)
 #######################################################################################################################
 # writing g(r) to a csv file
 
-with open(filelocation + filename + grdata + '.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + grdata + '.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(gr)
 
@@ -386,4 +394,4 @@ plt.plot(radius[1:len(radius)], np.ones(len(gr)), 'k-')
 plt.title("Ripley's g value (pair correlation)", fontsize = 18)
 plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('g(r)', fontsize = 18)
-plt.savefig(filelocation + filename + '_gr.' + timestep + '.svg', format='svg')
+plt.savefig(savelocation + filename + '_gr.' + timestep + '.svg', format='svg')
