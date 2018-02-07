@@ -20,7 +20,7 @@ from matplotlib.mlab import griddata
 # variables for reading and writing files
 
 csvarray = []
-timestep = '80'
+timestep = '160'
 filelocation = '/Users/zack/Documents/csv_data_files/'
 filename = 'box512_ht_1_loc'
 resfile = 'box512_ht_1_res'
