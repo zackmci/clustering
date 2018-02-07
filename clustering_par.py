@@ -8,18 +8,17 @@
 #  Last Modified 1/30/2018
 #
 #
-#######################################################################################################################
+###############################################################################
 # importing the needed modules
 
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.mlab import griddata
 import multiprocessing as mp
 import os
 import time
 
-#######################################################################################################################
+###############################################################################
 # variables for reading and writing files
 
 csv_array = []
@@ -33,14 +32,16 @@ tablename = '_minimum_distance'
 lrdata = '_lr_kr_'
 grdata = '_gr_'
 
-#######################################################################################################################
+###############################################################################
 # Opening and reading the csv files from the simulations
 
 # particle data
 with open(filelocation + filename + '.' + timestep + '.csv', 'r') as csvfile:
     csv_data = list(csv.reader(csvfile, delimiter=","))
 #print (csv_data[:3])
-csv_array = np.array(csv_data[1:], dtype=np.float) # Remove headers and convert to floats
+
+# Remove headers and convert to floats
+csv_array = np.array(csv_data[1:], dtype=np.float) 
 #print (csvarray[:3])
 
 original_part_num = len(csv_array)
@@ -50,9 +51,10 @@ with open(filelocation + resfile + '.' + timestep + '.csv', 'r') as csvres:
     res_data = list(csv.reader(csvres, delimiter=","))
 resarray = np.array(res_data[1:], dtype=np.float)
 
-#######################################################################################################################
-# Seperating the particles into two arrays based on volume fraction.  One array is the 
-# settled bed, and the other is of the particles still settling.
+###############################################################################
+# Seperating the particles into two arrays based on volume fraction. 
+# One array is the settled bed, and the other is of the particles 
+# still settling.
 
 def settling_array(posindex):
 
@@ -66,7 +68,8 @@ def settling_array(posindex):
         #    print (posindex)
     volarray = []
     for vfindex in range(0, len(resarray)):
-        # creating a smaller fluid array based on how close the corner is to the particle.
+        # creating a smaller fluid array based on how close the corner is 
+        # to the particle.
         if resarray[vfindex, 6] < csv_array[posindex, 7] + box_dist and \
         resarray[vfindex, 6] > csv_array[posindex, 7] - box_dist and \
         resarray[vfindex, 7] < csv_array[posindex, 8] + box_dist and \
@@ -76,43 +79,48 @@ def settling_array(posindex):
     distarray = []
     ref_dist = 2
     for volindex in range(0, len(volarray)):
-        dist_to_corner = np.sqrt((csv_array[posindex, 7] - volarray[volindex, 6])**2 +\
-                                (csv_array[posindex, 8] - volarray[volindex, 7])**2)
+        dist_to_corner = np.sqrt((csv_array[posindex, 7] - \
+                                  volarray[volindex, 6])**2 + \
+                                  (csv_array[posindex, 8] - \
+                                  volarray[volindex, 7])**2)
         if dist_to_corner < ref_dist:
             ref_dist = dist_to_corner
             distarray = volarray[volindex]
     distarray = np.array(distarray)
     if 1-distarray[0] >= vol_frac:
-        part_high_vol_array = csv_array[posindex] # Settled bed
-        part_low_vol_array = None
+        return [csv_array[posindex, 0], 1]
     else:
-        part_low_vol_array = csv_array[posindex] # Still settling
-        part_high_vol_array = None
-
-    return [part_low_vol_array, part_high_vol_array]
+        return [csv_array[posindex, 0], 0]
     
-#######################################################################################################################
+###############################################################################
 # calling settling_array()
 
 start = time.time()
+print ('Looking for settled beds at: ', start)
 pool = mp.Pool(processes=5)
 result = pool.map(settling_array, range(0, original_part_num)) 
 result = np.array(result)
 #print (result)
 pool.close()
 pool.join()
-csvarray = result[:, 0]
-csvarray = csvarray[csvarray != np.array(None)]
-csvarray = np.vstack(csvarray)
-part_high_vol_array = result[:, 1]
-part_high_vol_array = part_high_vol_array[part_high_vol_array != np.array(None)]
-if len(part_high_vol_array) > 0: 
-    part_high_vol_array = np.vstack(part_high_vol_array)
-end = time.time()
-os.system('spd-say "first annoying noise"')
-print ('two arrays created in: ', end - start)
+csvarray = []
+part_high_vol_array = []
+for i in range(0, len(csv_array)):
+    for n in range(0, len(result)):
+        if csv_array[i, 0] == result[n, 0]:
+            if result[n, 1] == 1:
+                part_high_vol_array.append(csv_array[i, :])
+            else:
+                csvarray.append(csv_array[i, :])
+csvarray = np.array(csvarray)
+part_high_vol_array = np.array(part_high_vol_array)
 
-#######################################################################################################################
+end = time.time()
+#os.system('spd-say "first annoying noise"')
+print ('particles seperated into high and low volume fraction arrays: ',\
+       end - start)
+
+###############################################################################
 # variables
 
 x_len = 512 # Length of x axis
@@ -125,7 +133,7 @@ x = csvarray[:,7]
 y = csvarray[:,8]
 rad = np.mean(csvarray[:, 1])/2
 
-#######################################################################################################################
+###############################################################################
 # Calculating the area of the settled bed
 
 if len(part_high_vol_array) > 0:
@@ -158,27 +166,34 @@ if len(part_high_vol_array) > 0:
 else:
     total_area = 0
 
-#######################################################################################################################
-# A function that creates an array of the particles within a set distance from the selected particle
+###############################################################################
+# A function that creates an array of the particles within a set distance from 
+# the selected particle
 
 def domain_reduction(arr, j, x, y, radius):
     arr_red = []
     x_pos = arr[j, x]
     y_pos = arr[j, y]
     #print (x_pos)
-    for i in range(0, len(arr)):
-        if arr[i, x] - arr[i, 1]/2 < x_pos + arr[j, 1]/2 + radius and \
-        arr[i, x] + arr[i, 1]/2 > x_pos - arr[j, 1]/2 - radius:
-            if arr[i, y] < y_pos + radius and arr[i, y] > y_pos - radius:
-#             if arr[i, y] - arr[i, 1]/2 < y_pos + arr[j, 1]/2 + radius and arr[i, y] + arr[i, 1]/2 > \
-#             :y_pos - arr[j, y]/2 - radius:
-                arr_red.append(arr[i])
-    arr_red = np.array(arr_red)
+    while len(arr_red) == 0:
+        for i in range(0, len(arr)):
+            if i != j:
+                if arr[i, x] < x_pos + radius and arr[i, x] > x_pos - radius \
+                and arr[i, y] < y_pos + radius and arr[i, y] > y_pos - radius:
+                    arr_red.append(arr[i])
+                    
+        arr_red = np.array(arr_red)            
+                    
+        if len(arr_red) == 0:
+            radius = radius + 5
+                
+    
     #print (arr_red)
     return arr_red
 
-#######################################################################################################################
-# Creating an array of the nearest neighbors and which particles are the nearest.
+###############################################################################
+# Creating an array of the nearest neighbors and which particles are
+# the nearest.
 
 def near_neigh(i):
 
@@ -191,32 +206,33 @@ def near_neigh(i):
     #print (near_neigh)
 
     # Creating an array that is reduced to particles within a set radius.
-    red_arr = domain_reduction(csvarray, i, 7, 8, 50)
+    red_arr = domain_reduction(csvarray, i, 7, 8, 5)
     #print (len(red_arr))
     #print (red_arr)
 
     for n in range(0, len(red_arr)):
         if csvarray[i, 0] != red_arr[n, 0]:
-            distance = np.sqrt((csvarray[i, 7] - red_arr[n, 7])**2 + (csvarray[i, 8] - red_arr[n, 8])**2)
-#             distance = np.sqrt((csvarray[i, 7] - red_arr[n, 7])**2 + (csvarray[i, 8] - red_arr[n, 8])**2) - \
-#             ((csvarray[i, 1]/2) + (red_arr[n, 1]/2))
+            distance = np.sqrt((csvarray[i, 7] - red_arr[n, 7])**2 + \
+                               (csvarray[i, 8] - red_arr[n, 8])**2)
             arr = np.array([csvarray[i, 0], red_arr[n, 0], distance])
             #print (arr)
             near_neigh.append(arr)
 
     near_neigh = np.array(near_neigh) # Converts the list into an array
     #print (near_neigh)
-    min_dist = np.amin(near_neigh[:, 2])
-    min_index = np.argmin(near_neigh[:, 2]) # Gives the index of the minimum value in the near_neigh array
+    
+    # Gives the index of the minimum value in the near_neigh array
+    min_index = np.argmin(near_neigh[:, 2]) 
     #print (min_index)
     neigh_array = near_neigh[min_index]
     #print (min_array)
     return neigh_array
 
-#######################################################################################################################
+###############################################################################
 # calling near_neigh
 
 start = time.time()
+print ('Finding the nearest neighbor starting at: ', start)
 pool = mp.Pool(processes=5)
 result = pool.map(near_neigh, range(0, new_part_num))
 result = np.array(result) 
@@ -224,12 +240,12 @@ pool.close()
 pool.join()
 min_array = np.array(result)
 end = time.time()
-os.system('spd-say "annoying noise two"')
+#os.system('spd-say "annoying noise two"')
 print ('Nearest neighbor found in: ', end - start)
 
 
 
-#######################################################################################################################
+###############################################################################
 # Writing nearest neighbor data to csv
 
 with open(savelocation + filename + tablename + '.' + timestep + '.csv', 'w', newline='') as f:
@@ -237,13 +253,13 @@ with open(savelocation + filename + tablename + '.' + timestep + '.csv', 'w', ne
     writer.writerow(['original particle', 'nearest neighbor', 'distance'])
     writer.writerows(min_array)
 
-#######################################################################################################################
+###############################################################################
 # Finding the mean distance rA
 
 #print(min_array[:, 2])
 rA = np.mean(min_array[:, 2])
 
-#######################################################################################################################
+###############################################################################
 # Calculating rE the expected value
 
 # Intensity with the area of the settled particles taken into consideration
@@ -251,12 +267,12 @@ lam = new_part_num / ((x_len * y_len) - total_area)
 
 rE = 1 / (2 * np.sqrt(lam))
 
-#######################################################################################################################
+###############################################################################
 # Calculating the R value rA/rE
 
 R = rA / rE
-
-#######################################################################################################################
+print ('R actual = ', rA, '\n', 'R estimated = ', rE, '\n', 'R = ', R)
+###############################################################################
 # Writing rA, rE, and R to a csv file
 
 with open(savelocation + filename + '_R.' + timestep + '.csv', 'w', newline='') as f:
@@ -264,11 +280,13 @@ with open(savelocation + filename + '_R.' + timestep + '.csv', 'w', newline='') 
     writer.writerow(['rA', 'rE', 'R'])
     writer.writerow([rA, rE, R])
 
-#######################################################################################################################
-# The purpose of this function is to calculate the distance between the selected particle and all the other particles.
-# To do this an array of particles is created where the particles are all within a distance slightly greater than the
-# radius of interest.  Anoter array is created that has only the particles within the defined radius, and the number
-# of particles within that array is returned to the calling script.
+###############################################################################
+# The purpose of this function is to calculate the distance between the 
+# selected particle and all the other particles. To do this an array of
+# particles is created where the particles are all within a distance slightly
+# greater than the radius of interest.  Anoter array is created that has only
+# the particles within the defined radius, and the number of particles within
+# that array is returned to the calling script.
 
 def part_in_rad(arr, part_num, x_val, y_val, radius):
 
@@ -318,7 +336,7 @@ while radius[index_rad] < ((y_len - min(csvarray[:, 8])) / 2 - (rad * 4)) and ra
     index_rad = index_rad + 1
     radius.append(rad * (index_rad + 1))
 radius = np.array(radius)
-print (y_len,'\n',  min(csvarray[:, 8]), '\n', radius)
+print ('The radial distances for number of particle search is: ', radius)
 
 #######################################################################################################################
 # Calculating Ripley's K and L values.
@@ -326,6 +344,7 @@ print (y_len,'\n',  min(csvarray[:, 8]), '\n', radius)
 def ripley_k(i):
 
     kr = []
+    print (radius[i])
 
     for n in range(0, new_part_num):
         # This if statement is to correct for edge effects.  If the particle surface is within range of the edge
@@ -341,11 +360,11 @@ def ripley_k(i):
             csvarray[n, 8] >= max_y_east + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
-            if csvarray[n, 7] >= radius[i]  and csvarray[n, 7] < min_x_east  and \
+            elif csvarray[n, 7] >= radius[i]  and csvarray[n, 7] < min_x_east  and \
             csvarray[n, 8] >= max_y_east and csvarray[n, 8] <= y_len - radius[i]:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
-            if csvarray[n, 7] >= radius[i] and csvarray[n, 7] <= min_x_east - radius[i] and \
+            elif csvarray[n, 7] >= radius[i] and csvarray[n, 7] <= min_x_east - radius[i] and \
             csvarray[n, 8] >= radius[i] and csvarray[n, 8] < max_y_east:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
@@ -354,11 +373,11 @@ def ripley_k(i):
             csvarray[n, 8] >= max_y_west + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
-            if csvarray[n, 7] >= max_x_west and csvarray[n, 7] < x_len - radius[i]  and \
+            elif csvarray[n, 7] >= max_x_west and csvarray[n, 7] < x_len - radius[i]  and \
             csvarray[n, 8] >= radius[i] and csvarray[n, 8] <= y_len - radius[i]:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
-            if csvarray[n, 7] >= max_x_west + radius[i] and csvarray[n, 7] <= x_len -  radius[i] and \
+            elif csvarray[n, 7] >= max_x_west + radius[i] and csvarray[n, 7] <= x_len -  radius[i] and \
             csvarray[n, 8] >= radius[i] and csvarray[n, 8] < max_y_west:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
@@ -367,11 +386,11 @@ def ripley_k(i):
             csvarray[n, 8] >= max_y_west + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
-            if csvarray[n, 7] > max_x_west and csvarray[n, 7] <= x_len - radius[i] and \
+            elif csvarray[n, 7] > max_x_west and csvarray[n, 7] <= x_len - radius[i] and \
             csvarray[n, 8] >= max_y_east + radius[i] and csvarray[n, 8] <= y_len - radius[i]:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
-            if csvarray[n, 7] >= max_x_west + radius[i] and csvarray[n, 7] <= min_x_east - radius[i] and \
+            elif csvarray[n, 7] >= max_x_west + radius[i] and csvarray[n, 7] <= min_x_east - radius[i] and \
             csvarray[n, 8] >= radius[i] and csvarray[n, 8] < max_y_east:
                 num_part = part_in_rad(csvarray, n, 7, 8, radius[i])
                 kr.append(num_part / lam)
@@ -384,14 +403,15 @@ def ripley_k(i):
 # calling ripleys_k and calculating Lr
 
 start = time.time()
+print ("Ripley's K value started at: ", start)
 pool = mp.Pool(processes=5)
-result = [pool.apply(ripley_k, args =  (i,)) for i in range(0, len(radius))]
+result = pool.map(ripley_k, range(0, len(radius)))
 result = np.array(result) 
 pool.close()
 pool.join()
 Kr = np.array(result)
 end = time.time()
-os.system('spd-say "annoying noise again "')
+# os.system('spd-say "annoying noise again "')
 print ("ripley's k value found in: ", end - start)
 
 # This is to correct for overlapping particles where the distance between
@@ -399,6 +419,7 @@ print ("ripley's k value found in: ", end - start)
 Kr[0] = 0
 
 Lr = np.sqrt(Kr / np.pi)
+print ('k(r) = ', Kr, '\n', 'L(r) = ', Lr)
 
 #######################################################################################################################
 # Writing L(r) and K(r) to a csv file
@@ -418,6 +439,8 @@ plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('L(r)', fontsize = 18)
 plt.savefig(savelocation + filename + '_lr.' + timestep + '.svg', format='svg')
 
+print ('Look for the L(r) plot.')
+
 #######################################################################################################################
 # Calulating Ripley's g value
 
@@ -429,6 +452,7 @@ for i in range(1, len(radius)):
     gr.append(dkr / (2 * np.pi * radius[i]))
 gr = np.array(gr)
 
+print ('g(r) = ', gr)
 #######################################################################################################################
 # writing g(r) to a csv file
 
@@ -446,3 +470,5 @@ plt.title("Ripley's g value (pair correlation)", fontsize = 18)
 plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('g(r)', fontsize = 18)
 plt.savefig(savelocation + filename + '_gr.' + timestep + '.svg', format='svg')
+
+print ('Look for the g(r) plot.')
