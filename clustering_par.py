@@ -22,12 +22,12 @@ import time
 # variables for reading and writing files
 
 csv_array = []
-timestep = '0'
+timestep = '400'
 filelocation = '/wd2/csv_data_files/'
 #filelocation = '/home/zack/Documents/csv_data_files/'
 savelocation = '/home/zack/Documents/csv_data_files/'
-filename = 'box512_random_loc'
-resfile = 'box512_random_res'
+filename = 'box512_ht_loc'
+resfile = 'box512_ht_res'
 tablename = '_minimum_distance'
 lrdata = '_lr_kr_'
 grdata = '_gr_'
@@ -119,6 +119,18 @@ end = time.time()
 #os.system('spd-say "first annoying noise"')
 print ('particles seperated into high and low volume fraction arrays: ',\
        end - start)
+###############################################################################
+# writing the array of particles with low volume fractions to file only if
+# there is an array of high volume fraction particles.
+
+if len(part_high_vol_array) > 0:
+    with open(savelocation + filename + 'low_vol_frac.' + timestep + '.csv', \
+              'w', newline='') as f:
+        writer=csv.writer(f)
+        writer.writerow(['ID', 'Diameter', 'Density', 'Velocity:0', \
+                         'Velocity:1', 'Velocity:2', 'Temperature', \
+                         'coordinates:0', 'coordinates:1', 'coordinates:2' ])
+        writer.writerows(csvarray)
 
 ###############################################################################
 # variables
@@ -469,6 +481,7 @@ plt.plot(radius[1:len(radius)], np.ones(len(gr)), 'k-')
 plt.title("Ripley's g value (pair correlation)", fontsize = 18)
 plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('g(r)', fontsize = 18)
+plt.ylim(ymin = 0, ymax = radius[-1])
 plt.savefig(savelocation + filename + '_gr.' + timestep + '.svg', format='svg')
 
 print ('Look for the g(r) plot.')

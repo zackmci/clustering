@@ -13,9 +13,9 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 
 csvarray = []
 data_array = []
-filelocation = '/Users/zack/Documents/csv_data_files/'
+filelocation = '/wd2/csv_data_files/'
 #filename = 'test_case_20'
-filename = 'box512_ht_1_loc'
+filename = 'box512_ht_loc'
 timestep = '0'
 
 # defining the bounding region:
@@ -102,6 +102,7 @@ def PolygonArea(corners):
     area = abs(area) / 2.0
     return area
 
+print ("Finding Voronoi cell area.")
 area = []
 eigvalarray = []
 eigvecarray = []
@@ -120,6 +121,8 @@ for i in range(0, len(reg)):
     
 mean_area = np.mean(area)
 
+print ("Voronoi cell area found")
+
 norm_area = []
 for i in range(0, len(area)):
     norm_area.append(area[i]/mean_area)
@@ -133,6 +136,7 @@ plt.show()
 eigvalarray = np.array(eigvalarray)
 eigvecarray = np.array(eigvecarray)
 
+print ("Finding aspect ratio.")
 a1 = []
 a2 = []
 ar = []
@@ -147,7 +151,7 @@ a2 = np.array(a2)
 
 al = []
 ashort = []
-for i in range(0, len(a1)): #a1 and j in a2:
+for i in range(0, len(a1)):
     if a1[i] >= a2[i]:
         al.append([1, a1[i]])
         ashort.append([1, a2[i]])
@@ -163,12 +167,16 @@ for i in range(0, len(al)):
     
 ar = np.array(ar)
 
+print ("Aspect ratio found.")
+
 fig = plt.figure()
 plt.hist(ar, bins = 'auto', density=True)
 plt.title('pdf of aspect ratio')
 plt.xlabel('Voronoi cell aspect ratio')
 plt.ylabel('P.D.F')
 plt.show()
+
+print ('Finding Voronoi cell orientation.')
 
 theta = []
         
@@ -197,6 +205,8 @@ for i in range(0, len(theta_reverse)):
         theta_reverse[i] = theta_reverse[i]
         
 new_theta = np.concatenate([theta, theta_reverse])
+
+print ('Voronoi cell orinetation found')
 
 bin_edge = np.deg2rad(np.arange(-5, 360, 10))
 number_of_theta, bin_edge = np.histogram(new_theta, bin_edge)
