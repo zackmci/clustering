@@ -4,18 +4,43 @@ Spyder Editor
 
 This is a temporary script file.
 """
+###############################################################################
+# voronoi_plot_area
+#
+# This code takes the particle positions and creates a Voronoi diagram.
+# The area of the diagram is found and Eigen values and vectors are 
+# used as proxies for the aspect ratio.
+#
+# date created:
+# 01/02/2018
+#
+# Author:
+# Zack McIntire
+#
+###############################################################################
+# importing the necessary python modules
 
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.mlab as mlab
+#import matplotlib as mpl
+#import matplotlib.cm as cm
 #import mplstereonet
 from scipy.spatial import Voronoi, voronoi_plot_2d
+
+###############################################################################
+# Variables and file information
 
 csvarray = []
 data_array = []
 filelocation = '/wd2/csv_data_files/'
 #filename = 'test_case_20'
+<<<<<<< HEAD
 filename = 'box512_ht_loc'
+=======
+filename = 'box512_ordered_loc'
+>>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 timestep = '0'
 
 # defining the bounding region:
@@ -23,6 +48,9 @@ x_min = 0
 x_max = 512
 y_min = 0
 y_max = 256
+
+###############################################################################
+# Opening the necessary files
 
 #with open(filelocation + filename + '.csv', 'r') as csvfile:
 #    csv_data = list(csv.reader(csvfile, delimiter=","))
@@ -41,6 +69,9 @@ data_array = np.array(csvarray)
 #        data_array.append(csvarray[i])
 #data_array = np.array(data_array)
 
+###############################################################################
+# Finding the Voronoi points and plotting the diagram
+ 
 points = []
 for i in range(0, len(data_array)):
     points.append([data_array[i, 7], data_array[i, 8]])
@@ -61,6 +92,9 @@ position = np.array(position)
 
 vor_reg = vor.regions
 
+###############################################################################
+# making sure the Voronoi vertices are within the domain boundaries.
+
 reg = []
 for i in range(0, len(vor_reg)):
     temp_reg = vor_reg[i]
@@ -80,6 +114,8 @@ for i in range(0, len(vor_reg)):
 #fig = plt.figure()
 #plt.scatter(x, y)
 
+###############################################################################
+# Finding the area of the Voronoi polygons
 
 def PolygonSort(corners):
     n = len(corners)
@@ -106,12 +142,19 @@ print ("Finding Voronoi cell area.")
 area = []
 eigvalarray = []
 eigvecarray = []
+#max_x = 512
+#max_y = 256
 for i in range(0, len(reg)):
     corners = []
     vor_reg_temp = np.array(reg[i])
     for n in vor_reg_temp:
         corners.append(vor_vert[n])
     corners = np.array(corners)
+#    for k in range(0, len(corners)):
+#        if corners[k, 0] < max_x:
+#            max_x = corners[k, 0]
+#        if corners[k, 1] < max_y:
+#            max_y = corners[k, 1]
     xy = corners.T
     eigvals, eigvecs = np.linalg.eig(np.cov(xy))
     eigvalarray.append(eigvals)
@@ -119,16 +162,89 @@ for i in range(0, len(reg)):
     corners_sorted = PolygonSort(corners)
     area.append(PolygonArea(corners_sorted))
     
-mean_area = np.mean(area)
+data_mean_area = np.mean(area)
+    
+###############################################################################
+# creating a random array of particles for an average area of Voronoi cells to 
+# normalize to.
+
+num_of_part = len(csvarray)
+y_mid = np.mean(csvarray[:, 8])
+y_top = max(csvarray[:, 8])
+y_height = (y_top - y_mid) * 2
+
+rand_array = np.random.random((num_of_part, 2))
+rand_array[:, 0] = rand_array[:, 0] * 512
+rand_array[:, 1] = rand_array[:, 1] * y_height
+
+rand_vor = Voronoi(rand_array, qhull_options='Qbb Qc Qx')
+
+rand_vor_vert = rand_vor.vertices
+
+rand_position = [-1]
+
+for indexr in range(0, len(rand_vor_vert)):
+    if rand_vor_vert[indexr, 0] > x_max or rand_vor_vert[indexr, 0] < x_min \
+    or rand_vor_vert[indexr, 1] > y_max or rand_vor_vert[indexr, 1] < y_min:
+        rand_position.append(indexr)
+        
+rand_position = np.array(rand_position)
+
+
+rand_vor_reg = rand_vor.regions
+
+rand_reg = []
+for i in range(0, len(rand_vor_reg)):
+    temp_reg = rand_vor_reg[i]
+    ind = 0
+    for n in range(0, len(temp_reg)):
+        for index in rand_position:
+            if index == temp_reg[n]:
+                ind = 1
+    if ind != 1:
+        rand_reg.append(temp_reg)
+
+rand_area = []
+rand_eigvalarray = []
+rand_eigvecarray = []
+#max_x = 512
+#max_y = 256
+for i in range(0, len(rand_reg)):
+    rand_corners = []
+    vor_reg_temp = np.array(rand_reg[i])
+    for n in vor_reg_temp:
+        rand_corners.append(rand_vor_vert[n])
+    rand_corners = np.array(rand_corners)
+#    for k in range(0, len(corners)):
+#        if corners[k, 0] < max_x:
+#            max_x = corners[k, 0]
+#        if corners[k, 1] < max_y:
+#            max_y = corners[k, 1]
+    xy = rand_corners.T
+    eigvals, eigvecs = np.linalg.eig(np.cov(xy))
+    rand_eigvalarray.append(eigvals)
+    rand_eigvecarray.append(eigvecs)
+    rand_corners_sorted = PolygonSort(rand_corners)
+    rand_area.append(PolygonArea(rand_corners_sorted))
+    
+rand_mean_area = np.mean(rand_area)
 
 print ("Voronoi cell area found")
 
 norm_area = []
 for i in range(0, len(area)):
-    norm_area.append(area[i]/mean_area)
+    norm_area.append(area[i]/rand_mean_area)
+
+###############################################################################    
+# plotting the normalized cell area as a pdf plot
+    
 fig = plt.figure()
-plt.hist(norm_area, bins = 'auto', density=True ) 
+sigma = np.std(norm_area)
+weight_area = np.ones_like(norm_area)/float(len(norm_area))
+n_area, bins_area, patches_area = plt.hist(norm_area, bins = 10, weights =\
+                                           weight_area)
 plt.title('pdf of normalized cell area')
+plt.xlim(xmin = 0, xmax = max(norm_area) + 0.5)
 plt.xlabel('normalized Voronoi cell area')
 plt.ylabel('P.D.F')
 plt.show()   
@@ -136,7 +252,13 @@ plt.show()
 eigvalarray = np.array(eigvalarray)
 eigvecarray = np.array(eigvecarray)
 
+<<<<<<< HEAD
 print ("Finding aspect ratio.")
+=======
+###############################################################################
+# finding the aspect ratio of the eigen vectors
+
+>>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 a1 = []
 a2 = []
 ar = []
@@ -163,20 +285,50 @@ al = np.array(al)
 ashort = np.array(ashort)
         
 for i in range(0, len(al)):
-    ar.append(ashort[i, 1] / al[i, 1])
+    ar.append(al[i, 1] / ashort[i, 1])
     
 ar = np.array(ar)
 
+<<<<<<< HEAD
 print ("Aspect ratio found.")
+=======
+###############################################################################
+# attempted to color the Voronoi cell by aspect ratio
+
+#minima = min(ar)
+#maxima = max(ar)
+#
+#
+#norm = mpl.colors.Normalize(vmin=minima, vmax=maxima, clip=True)
+#mapper = cm.ScalarMappable(norm=norm, cmap=cm.Blues_r)
+#
+#
+#voronoi_plot_2d(vor, show_points=True, show_vertices=False, s=1)
+#for r in range(len(reg)):
+#    polygon = [vor_vert[i] for i in reg]
+#    plt.fill(*zip(*polygon), color=mapper.to_rgba(ar[r]))
+#plt.show()
+
+###############################################################################
+# plotting the pdf of the aspect ratio.
+>>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 
 fig = plt.figure()
-plt.hist(ar, bins = 'auto', density=True)
+weights_ar = np.ones_like(ar)/float(len(ar))
+n_ar, bins_ar, patches_ar = plt.hist(ar, bins = 10, weights = weights_ar)
 plt.title('pdf of aspect ratio')
+plt.xlim(xmin = 0, xmax = max(ar) + 0.5)
 plt.xlabel('Voronoi cell aspect ratio')
 plt.ylabel('P.D.F')
 plt.show()
 
+<<<<<<< HEAD
 print ('Finding Voronoi cell orientation.')
+=======
+###############################################################################
+# calculating the angle of the longest eigen vector and creating a rose diagram
+# of the orientation of that vector.
+>>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 
 theta = []
         
@@ -187,27 +339,37 @@ for i in range(0, len(al)):
         theta.append(np.arctan(eigvecarray[i, 1, 1] / eigvecarray[i, 1, 0]))
 theta = np.array(theta)
 
+# making sure the theta values can be plotted on the rose diagram. increasing 
+# values below the rose diagram threshould by 2pi
 for i in range(0, len(theta)):
     if theta[i] <= np.deg2rad(-5):
         theta[i] = theta[i] + (2 * np.pi)
     else:
         theta[i] = theta[i]
-        
+
+# creating a theta array that is the opposite of the original data so the 
+# diagram is symmetric       
 theta_reverse = []
 for i in range(0, len(theta)):
     theta_reverse.append(theta[i] + np.pi)
 theta_reverse = np.array(theta_reverse)
 
+# making sure there are no values above the maximum threshold of the rose plot
 for i in range(0, len(theta_reverse)):
     if theta_reverse[i] > 2*np.pi:
         theta_reverse[i] = theta_reverse[i] - (2 * np.pi)
     else:
         theta_reverse[i] = theta_reverse[i]
         
+# combining the two arrays        
 new_theta = np.concatenate([theta, theta_reverse])
 
+<<<<<<< HEAD
 print ('Voronoi cell orinetation found')
 
+=======
+# creating the bins and bin values
+>>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 bin_edge = np.deg2rad(np.arange(-5, 360, 10))
 number_of_theta, bin_edge = np.histogram(new_theta, bin_edge)
 number_of_theta = np.array(number_of_theta)
@@ -215,13 +377,14 @@ number_of_theta = np.array(number_of_theta)
 #for i in range(0, len(number_of_theta)):
 #    number_of_theta[i] = number_of_theta[i] / 2.0
 
+# plotting the rose diagram
 fig = plt.figure()
 
 ax = plt.subplot(111, projection='polar')
 
 ax.bar(np.deg2rad(np.arange(0, 360, 10)), number_of_theta/2, width=np.deg2rad(10),\
-       bottom=0.0, color='.8', edgecolor='k')
-ax.set_theta_zero_location('N')
+       bottom=0.0, color='g', edgecolor='k')
+ax.set_theta_zero_location('E')
 ax.set_theta_direction(-1)
 ax.set_title('Rose Diagram of the "polygon orientation"', y=1.10, fontsize=15)
 plt.show()
