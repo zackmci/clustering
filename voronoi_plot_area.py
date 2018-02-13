@@ -23,6 +23,7 @@ This is a temporary script file.
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.mlab as mlab
 #import matplotlib as mpl
 #import matplotlib.cm as cm
 #import mplstereonet
@@ -231,8 +232,12 @@ for i in range(0, len(area)):
 # plotting the normalized cell area as a pdf plot
     
 fig = plt.figure()
-plt.hist(norm_area, bins = 'auto', density=True ) 
+sigma = np.std(norm_area)
+weight_area = np.ones_like(norm_area)/float(len(norm_area))
+n_area, bins_area, patches_area = plt.hist(norm_area, bins = 10, weights =\
+                                           weight_area)
 plt.title('pdf of normalized cell area')
+plt.xlim(xmin = 0, xmax = max(norm_area) + 0.5)
 plt.xlabel('normalized Voronoi cell area')
 plt.ylabel('P.D.F')
 plt.show()   
@@ -294,8 +299,10 @@ ar = np.array(ar)
 # plotting the pdf of the aspect ratio.
 
 fig = plt.figure()
-plt.hist(ar, bins = 'auto', density=True)
+weights_ar = np.ones_like(ar)/float(len(ar))
+n_ar, bins_ar, patches_ar = plt.hist(ar, bins = 10, weights = weights_ar)
 plt.title('pdf of aspect ratio')
+plt.xlim(xmin = 0, xmax = max(ar) + 0.5)
 plt.xlabel('Voronoi cell aspect ratio')
 plt.ylabel('P.D.F')
 plt.show()
