@@ -23,7 +23,7 @@ This is a temporary script file.
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.mlab as mlab
+#import matplotlib.mlab as mlab
 #import matplotlib as mpl
 #import matplotlib.cm as cm
 #import mplstereonet
@@ -38,12 +38,6 @@ filelocation = '/wd2/csv_data_files/'
 #filename = 'test_case_20'
 filename = 'box512_ht_loc'
 timestep = '0'
-
-# defining the bounding region:
-x_min = 0
-x_max = 512
-y_min = 0
-y_max = 256
 
 ###############################################################################
 # Opening the necessary files
@@ -67,6 +61,12 @@ data_array = np.array(csvarray)
 
 ###############################################################################
 # Finding the Voronoi points and plotting the diagram
+
+# defining the bounding region:
+x_min = 0
+x_max = 512
+y_min = min(data_array[:, 8])
+y_max = max(data_array[:, 8])
  
 points = []
 for i in range(0, len(data_array)):
@@ -172,6 +172,7 @@ y_height = (y_top - y_mid) * 2
 rand_array = np.random.random((num_of_part, 2))
 rand_array[:, 0] = rand_array[:, 0] * 512
 rand_array[:, 1] = rand_array[:, 1] * y_height
+y_bottom = min(rand_array[:, 1])
 
 rand_vor = Voronoi(rand_array, qhull_options='Qbb Qc Qx')
 
@@ -181,7 +182,8 @@ rand_position = [-1]
 
 for indexr in range(0, len(rand_vor_vert)):
     if rand_vor_vert[indexr, 0] > x_max or rand_vor_vert[indexr, 0] < x_min \
-    or rand_vor_vert[indexr, 1] > y_max or rand_vor_vert[indexr, 1] < y_min:
+    or rand_vor_vert[indexr, 1] > y_height or rand_vor_vert[indexr, 1] < \
+    y_bottom:
         rand_position.append(indexr)
         
 rand_position = np.array(rand_position)
@@ -283,7 +285,10 @@ for i in range(0, len(al)):
     
 ar = np.array(ar)
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> d0329e5874208fd060d5b3a1f9604ddfad5704a4
 print ("Aspect ratio found.")
 
 ###############################################################################
