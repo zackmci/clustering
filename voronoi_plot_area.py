@@ -23,7 +23,7 @@ This is a temporary script file.
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.mlab as mlab
+#import matplotlib.mlab as mlab
 #import matplotlib as mpl
 #import matplotlib.cm as cm
 #import mplstereonet
@@ -36,18 +36,8 @@ csvarray = []
 data_array = []
 filelocation = '/wd2/csv_data_files/'
 #filename = 'test_case_20'
-<<<<<<< HEAD
-filename = 'box512_ht_loc'
-=======
 filename = 'box512_ordered_loc'
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 timestep = '0'
-
-# defining the bounding region:
-x_min = 0
-x_max = 512
-y_min = 0
-y_max = 256
 
 ###############################################################################
 # Opening the necessary files
@@ -71,6 +61,12 @@ data_array = np.array(csvarray)
 
 ###############################################################################
 # Finding the Voronoi points and plotting the diagram
+
+# defining the bounding region:
+x_min = 0
+x_max = 512
+y_min = min(data_array[:, 8])
+y_max = max(data_array[:, 8])
  
 points = []
 for i in range(0, len(data_array)):
@@ -176,6 +172,7 @@ y_height = (y_top - y_mid) * 2
 rand_array = np.random.random((num_of_part, 2))
 rand_array[:, 0] = rand_array[:, 0] * 512
 rand_array[:, 1] = rand_array[:, 1] * y_height
+y_bottom = min(rand_array[:, 1])
 
 rand_vor = Voronoi(rand_array, qhull_options='Qbb Qc Qx')
 
@@ -185,7 +182,8 @@ rand_position = [-1]
 
 for indexr in range(0, len(rand_vor_vert)):
     if rand_vor_vert[indexr, 0] > x_max or rand_vor_vert[indexr, 0] < x_min \
-    or rand_vor_vert[indexr, 1] > y_max or rand_vor_vert[indexr, 1] < y_min:
+    or rand_vor_vert[indexr, 1] > y_height or rand_vor_vert[indexr, 1] < \
+    y_bottom:
         rand_position.append(indexr)
         
 rand_position = np.array(rand_position)
@@ -252,13 +250,11 @@ plt.show()
 eigvalarray = np.array(eigvalarray)
 eigvecarray = np.array(eigvecarray)
 
-<<<<<<< HEAD
 print ("Finding aspect ratio.")
-=======
+
 ###############################################################################
 # finding the aspect ratio of the eigen vectors
 
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 a1 = []
 a2 = []
 ar = []
@@ -289,9 +285,8 @@ for i in range(0, len(al)):
     
 ar = np.array(ar)
 
-<<<<<<< HEAD
 print ("Aspect ratio found.")
-=======
+
 ###############################################################################
 # attempted to color the Voronoi cell by aspect ratio
 
@@ -311,7 +306,6 @@ print ("Aspect ratio found.")
 
 ###############################################################################
 # plotting the pdf of the aspect ratio.
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 
 fig = plt.figure()
 weights_ar = np.ones_like(ar)/float(len(ar))
@@ -322,13 +316,11 @@ plt.xlabel('Voronoi cell aspect ratio')
 plt.ylabel('P.D.F')
 plt.show()
 
-<<<<<<< HEAD
 print ('Finding Voronoi cell orientation.')
-=======
+
 ###############################################################################
 # calculating the angle of the longest eigen vector and creating a rose diagram
 # of the orientation of that vector.
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 
 theta = []
         
@@ -364,12 +356,10 @@ for i in range(0, len(theta_reverse)):
 # combining the two arrays        
 new_theta = np.concatenate([theta, theta_reverse])
 
-<<<<<<< HEAD
 print ('Voronoi cell orinetation found')
 
-=======
 # creating the bins and bin values
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
+
 bin_edge = np.deg2rad(np.arange(-5, 360, 10))
 number_of_theta, bin_edge = np.histogram(new_theta, bin_edge)
 number_of_theta = np.array(number_of_theta)
