@@ -36,11 +36,7 @@ csvarray = []
 data_array = []
 filelocation = '/wd2/csv_data_files/'
 #filename = 'test_case_20'
-<<<<<<< HEAD
 filename = 'box512_ht_loc'
-=======
-filename = 'box512_ordered_loc'
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 timestep = '0'
 
 # defining the bounding region:
@@ -252,13 +248,11 @@ plt.show()
 eigvalarray = np.array(eigvalarray)
 eigvecarray = np.array(eigvecarray)
 
-<<<<<<< HEAD
 print ("Finding aspect ratio.")
-=======
+
 ###############################################################################
 # finding the aspect ratio of the eigen vectors
 
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 a1 = []
 a2 = []
 ar = []
@@ -289,9 +283,9 @@ for i in range(0, len(al)):
     
 ar = np.array(ar)
 
-<<<<<<< HEAD
+
 print ("Aspect ratio found.")
-=======
+
 ###############################################################################
 # attempted to color the Voronoi cell by aspect ratio
 
@@ -311,7 +305,6 @@ print ("Aspect ratio found.")
 
 ###############################################################################
 # plotting the pdf of the aspect ratio.
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 
 fig = plt.figure()
 weights_ar = np.ones_like(ar)/float(len(ar))
@@ -322,13 +315,11 @@ plt.xlabel('Voronoi cell aspect ratio')
 plt.ylabel('P.D.F')
 plt.show()
 
-<<<<<<< HEAD
 print ('Finding Voronoi cell orientation.')
-=======
+
 ###############################################################################
 # calculating the angle of the longest eigen vector and creating a rose diagram
 # of the orientation of that vector.
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
 
 theta = []
         
@@ -364,12 +355,10 @@ for i in range(0, len(theta_reverse)):
 # combining the two arrays        
 new_theta = np.concatenate([theta, theta_reverse])
 
-<<<<<<< HEAD
 print ('Voronoi cell orinetation found')
 
-=======
 # creating the bins and bin values
->>>>>>> 6f250f6c2150eea803ca2387b66db300f73f401b
+
 bin_edge = np.deg2rad(np.arange(-5, 360, 10))
 number_of_theta, bin_edge = np.histogram(new_theta, bin_edge)
 number_of_theta = np.array(number_of_theta)
@@ -385,7 +374,7 @@ ax = plt.subplot(111, projection='polar')
 ax.bar(np.deg2rad(np.arange(0, 360, 10)), number_of_theta/2, width=np.deg2rad(10),\
        bottom=0.0, color='g', edgecolor='k')
 ax.set_theta_zero_location('E')
-ax.set_theta_direction(-1)
+ax.set_theta_direction(1)
 ax.set_title('Rose Diagram of the "polygon orientation"', y=1.10, fontsize=15)
 plt.show()
 
