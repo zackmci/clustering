@@ -15,7 +15,8 @@
 # Zack McIntire
 #
 # Imputs: (CSV)
-# - particle location file
+# - particle location file --Note: for timesteps greater than 0 the saved 
+#   particle file from the clustering code should be used. (low_vol_frac) 
 # - fluid file
 # - normalized area for timestep zero of non mixing bowl simulation
 # 
