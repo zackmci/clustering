@@ -15,19 +15,20 @@ import csv
 import matplotlib.pyplot as plt
 import numpy as np
 import multiprocessing as mp
-import os
+#import os
 import time
 
 ###############################################################################
 # variables for reading and writing files
 
 csv_array = []
-timestep = '400'
+timestep = '800'
 filelocation = '/wd2/csv_data_files/'
 #filelocation = '/home/zack/Documents/csv_data_files/'
 savelocation = '/home/zack/Documents/csv_data_files/'
-filename = 'box512_ht_loc'
-resfile = 'box512_ht_res'
+figurelocation = '/home/zack/Documents/clustering_figures/'
+filename = 'box512_ht_20_loc'
+resfile = 'box512_ht_20_res'
 tablename = '_minimum_distance'
 lrdata = '_lr_kr_'
 grdata = '_gr_'
@@ -98,17 +99,17 @@ def settling_array(posindex):
 start = time.time()
 print ('Looking for settled beds at: ', start)
 pool = mp.Pool(processes=5)
-result = pool.map(settling_array, range(0, original_part_num)) 
-result = np.array(result)
+settled_result = pool.map(settling_array, range(0, original_part_num)) 
+settled_result = np.array(settled_result)
 #print (result)
 pool.close()
 pool.join()
 csvarray = []
 part_high_vol_array = []
 for i in range(0, len(csv_array)):
-    for n in range(0, len(result)):
-        if csv_array[i, 0] == result[n, 0]:
-            if result[n, 1] == 1:
+    for n in range(0, len(settled_result)):
+        if csv_array[i, 0] == settled_result[n, 0]:
+            if settled_result[n, 1] == 1:
                 part_high_vol_array.append(csv_array[i, :])
             else:
                 csvarray.append(csv_array[i, :])
@@ -124,7 +125,7 @@ print ('particles seperated into high and low volume fraction arrays: ',\
 # there is an array of high volume fraction particles.
 
 if len(part_high_vol_array) > 0:
-    with open(savelocation + filename + 'low_vol_frac.' + timestep + '.csv', \
+    with open(savelocation + filename + '_low_vol_frac.' + timestep + '.csv', \
               'w', newline='') as f:
         writer=csv.writer(f)
         writer.writerow(['ID', 'Diameter', 'Density', 'Velocity:0', \
@@ -188,16 +189,18 @@ def domain_reduction(arr, j, x, y, radius):
     y_pos = arr[j, y]
     #print (x_pos)
     while len(arr_red) == 0:
-        for i in range(0, len(arr)):
-            if i != j:
-                if arr[i, x] < x_pos + radius and arr[i, x] > x_pos - radius \
-                and arr[i, y] < y_pos + radius and arr[i, y] > y_pos - radius:
-                    arr_red.append(arr[i])
-                    
-        arr_red = np.array(arr_red)            
-                    
+        for point in range(0, len(arr)):
+            #print(point)
+            if point != j:
+                if arr[point, x] < x_pos + radius and arr[point, x] > x_pos - radius \
+                and arr[point, y] < y_pos + radius and arr[point, y] > y_pos - radius:
+                    arr_red.append(arr[point])
         if len(arr_red) == 0:
             radius = radius + 5
+                    
+    arr_red = np.array(arr_red)            
+                    
+    
                 
     
     #print (arr_red)
@@ -208,13 +211,14 @@ def domain_reduction(arr, j, x, y, radius):
 # the nearest.
 
 def near_neigh(i):
+    #print (i)
 
     #for i in range(0, new_part_num):
 
     #    if i % 1000 == 0:
     #        print (i)
     #    print (i)
-    near_neigh = []
+    near_neighb = []
     #print (near_neigh)
 
     # Creating an array that is reduced to particles within a set radius.
@@ -228,15 +232,15 @@ def near_neigh(i):
                                (csvarray[i, 8] - red_arr[n, 8])**2)
             arr = np.array([csvarray[i, 0], red_arr[n, 0], distance])
             #print (arr)
-            near_neigh.append(arr)
+            near_neighb.append(arr)
 
-    near_neigh = np.array(near_neigh) # Converts the list into an array
-    #print (near_neigh)
+    near_neighb = np.array(near_neighb) # Converts the list into an array
+    #print (near_neighb)
     
     # Gives the index of the minimum value in the near_neigh array
-    min_index = np.argmin(near_neigh[:, 2]) 
+    min_index = np.argmin(near_neighb[:, 2]) 
     #print (min_index)
-    neigh_array = near_neigh[min_index]
+    neigh_array = near_neighb[min_index]
     #print (min_array)
     return neigh_array
 
@@ -245,12 +249,12 @@ def near_neigh(i):
 
 start = time.time()
 print ('Finding the nearest neighbor starting at: ', start)
-pool = mp.Pool(processes=5)
-result = pool.map(near_neigh, range(0, new_part_num))
-result = np.array(result) 
-pool.close()
-pool.join()
-min_array = np.array(result)
+neigh_pool = mp.Pool(processes=5)
+neigh_result = neigh_pool.map(near_neigh, range(0, new_part_num))
+neigh_result = np.array(neigh_result) 
+neigh_pool.close()
+neigh_pool.join()
+min_array = np.array(neigh_result)
 end = time.time()
 #os.system('spd-say "annoying noise two"')
 print ('Nearest neighbor found in: ', end - start)
@@ -417,11 +421,11 @@ def ripley_k(i):
 start = time.time()
 print ("Ripley's K value started at: ", start)
 pool = mp.Pool(processes=5)
-result = pool.map(ripley_k, range(0, len(radius)))
-result = np.array(result) 
+kr_result = pool.map(ripley_k, range(0, len(radius)))
+kr_result = np.array(kr_result) 
 pool.close()
 pool.join()
-Kr = np.array(result)
+Kr = np.array(kr_result)
 end = time.time()
 # os.system('spd-say "annoying noise again "')
 print ("ripley's k value found in: ", end - start)
@@ -449,7 +453,7 @@ plt.plot(radius, radius, 'k-')
 plt.title("Ripley's L value", fontsize = 18 )
 plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('L(r)', fontsize = 18)
-plt.savefig(savelocation + filename + '_lr.' + timestep + '.svg', format='svg')
+plt.savefig(figurelocation + filename + '_lr.' + timestep + '.svg', format='svg')
 
 print ('Look for the L(r) plot.')
 
@@ -481,7 +485,6 @@ plt.plot(radius[1:len(radius)], np.ones(len(gr)), 'k-')
 plt.title("Ripley's g value (pair correlation)", fontsize = 18)
 plt.xlabel('radius (r)', fontsize = 18)
 plt.ylabel('g(r)', fontsize = 18)
-plt.ylim(ymin = 0, ymax = radius[-1])
-plt.savefig(savelocation + filename + '_gr.' + timestep + '.svg', format='svg')
+plt.savefig(figurelocation + filename + '_gr.' + timestep + '.svg', format='svg')
 
 print ('Look for the g(r) plot.')

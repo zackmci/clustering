@@ -17,15 +17,38 @@ This is a temporary script file.
 # Author:
 # Zack McIntire
 #
+# Imputs: (CSV)
+# - particle location file
+# - fluid file
+# - normalized area for timestep zero of non mixing bowl simulation
+# 
+# Outputs:
+#
+# --arrays-- (CSV)
+# - An array that contains the Voronoi cell area, and the normalized area.
+# - An array of the aspect ratio data.
+#
+# --figures-- (SVG)
+# - Voronoi diagram of the settling particles
+# - Histogram of the normalized area compared to the initial non mixing bowl
+#   and the eq from Ferenc and Neda
+# - Voronoi diagram colored by aspect ratio and the color bar (seperate figure)
+# - Histogram of the aspect ratio compared to the first timestep of the non
+#   mixing bowl run.
+# - Voronoi diagram colored to normalized area with colorbar (seperate figure)
+# - rose diagram of long eigen vector direction.
+# 
 ###############################################################################
 # importing the necessary python modules
 
 import csv
 import matplotlib.pyplot as plt
 import numpy as np
+import multiprocessing as mp
 #import matplotlib.mlab as mlab
-#import matplotlib as mpl
-#import matplotlib.cm as cm
+#from scipy.stats import norm
+import matplotlib as mpl
+import matplotlib.cm as cm
 #import mplstereonet
 from scipy.spatial import Voronoi, voronoi_plot_2d
 
@@ -34,9 +57,14 @@ from scipy.spatial import Voronoi, voronoi_plot_2d
 
 csvarray = []
 data_array = []
-filelocation = '/wd2/csv_data_files/'
+filelocation2 = '/wd2/csv_data_files/'
+filelocation = '/home/zack/Documents/csv_data_files/'
+figurelocation = '/home/zack/Documents/clustering_figures/'
+savelocation = '/home/zack/Documents/csv_data_files/'
+#randfilename = 'box512_ht_loc'
 #filename = 'test_case_20'
-filename = 'box512_ht_loc'
+filename = 'box512_ht_zero_loc'
+resfile = 'box512_ht_zero_res'
 timestep = '0'
 
 ###############################################################################
@@ -45,13 +73,23 @@ timestep = '0'
 #with open(filelocation + filename + '.csv', 'r') as csvfile:
 #    csv_data = list(csv.reader(csvfile, delimiter=","))
 
-with open(filelocation + filename + '.' + timestep + '.csv', 'r') as csvfile:
+#with open(filelocation2 + randfilename + '.' + '0.csv', 'r') as randfile:
+#    rand_data = list(csv.reader(randfile, delimiter=","))
+#rand_data = rand_data[1:]
+#
+#rand_len = len(rand_data)
+
+with open(filelocation2 + filename + '.' + timestep + '.csv', 'r') as csvfile:
     csv_data = list(csv.reader(csvfile, delimiter=","))
 #print (csv_data[:3])
 csvarray = np.array(csv_data[1:], dtype=np.float) # Remove headers and convert to floats
 #print (csvarray[:3])
 
 data_array = np.array(csvarray)
+
+with open(filelocation2 + resfile + '.' + timestep + '.csv', 'r') as csvres:
+    res_data = list(csv.reader(csvres, delimiter=","))
+resarray = np.array(res_data[1:], dtype=np.float)
 
 #for i in range(0, len(csvarray)):
 #    if csvarray[i, 7] < x_max and csvarray[i, 7] > x_min and \
@@ -75,21 +113,73 @@ points = np.array(points)
 
 vor = Voronoi(points, qhull_options='Qbb Qc Qx')
 voronoi_plot_2d(vor, show_vertices = False)
-plt.show()
+plt.savefig(figurelocation + filename + '_Voronoi_regions.' + timestep + \
+            '.svg', format = 'svg')
 
-vor_vert = vor.vertices
-position = [-1]
-for index in range(0, len(vor_vert)):
-    if vor_vert[index, 0] > x_max or vor_vert[index, 0] < x_min \
-    or vor_vert[index, 1] > y_max or vor_vert[index, 1] < y_min:
-        position.append(index)
-position = np.array(position)
+vor_vert = np.array(vor.vertices)
 
+position = np.array(-1)
+
+###############################################################################      
+def vert_remover(posindex):
+    
+    vol_frac = 0.46
+    box_dist = 3
+
+    if vor_vert[posindex, 0] < x_max and vor_vert[posindex, 0] > x_min \
+    and vor_vert[posindex, 1] < y_max and vor_vert[posindex, 1] > y_min:
+
+        volarray = []
+        for vfindex in range(0, len(resarray)):
+            # creating a smaller fluid array based on how close the corner is 
+            # to the particle.
+            if resarray[vfindex, 6] < vor_vert[posindex, 0] + box_dist and \
+            resarray[vfindex, 6] > vor_vert[posindex, 0] - box_dist and \
+            resarray[vfindex, 7] < vor_vert[posindex, 1] + box_dist and \
+            resarray[vfindex, 7] > vor_vert[posindex, 1] - box_dist:
+                volarray.append(resarray[vfindex])
+        volarray = np.array(volarray)  
+        #print(volarray[:3])
+        distarray = []
+        ref_dist = 2
+        for volindex in range(0, len(volarray)):
+            dist_to_corner = np.sqrt((vor_vert[posindex, 0] - \
+                                      volarray[volindex, 6])**2 + \
+                                      (vor_vert[posindex, 1] - \
+                                      volarray[volindex, 7])**2)
+            if dist_to_corner < ref_dist:
+                ref_dist = dist_to_corner
+                distarray = volarray[volindex]
+        distarray = np.array(distarray)
+        if 1-distarray[0] >= vol_frac or 1-distarray[0] == 0:
+            return [posindex, 0]
+        else:
+            return [posindex, 1]
+    else:
+        return [posindex, 0]
+    
+###############################################################################            
+print ('finding the position of outlying vertices')
+vert_len = len(vor_vert)
+pool = mp.Pool(processes=3)
+result = pool.map(vert_remover, range(0, vert_len)) 
+result = np.array(result)
+pool.close()
+pool.join()
+modresult = []
+for vert_index in range(0, len(result)):
+    if result[vert_index, 1] == 0:
+        position = np.append(position, vert_index)
+
+position = np.array(position) 
+
+print ('outlying vertices found')
 
 vor_reg = vor.regions
 
 ###############################################################################
-# making sure the Voronoi vertices are within the domain boundaries.
+# making sure the Voronoi vertices are within the domain boundaries and within
+# the specified volume fraction range.
 
 reg = []
 for i in range(0, len(vor_reg)):
@@ -158,6 +248,9 @@ for i in range(0, len(reg)):
     corners_sorted = PolygonSort(corners)
     area.append(PolygonArea(corners_sorted))
     
+eigvalarray = np.array(eigvalarray)
+eigvecarray = np.array(eigvecarray)
+    
 data_mean_area = np.mean(area)
     
 ###############################################################################
@@ -203,8 +296,6 @@ for i in range(0, len(rand_vor_reg)):
         rand_reg.append(temp_reg)
 
 rand_area = []
-rand_eigvalarray = []
-rand_eigvecarray = []
 #max_x = 512
 #max_y = 256
 for i in range(0, len(rand_reg)):
@@ -219,12 +310,9 @@ for i in range(0, len(rand_reg)):
 #        if corners[k, 1] < max_y:
 #            max_y = corners[k, 1]
     xy = rand_corners.T
-    eigvals, eigvecs = np.linalg.eig(np.cov(xy))
-    rand_eigvalarray.append(eigvals)
-    rand_eigvecarray.append(eigvecs)
     rand_corners_sorted = PolygonSort(rand_corners)
     rand_area.append(PolygonArea(rand_corners_sorted))
-    
+ 
 rand_mean_area = np.mean(rand_area)
 
 print ("Voronoi cell area found")
@@ -232,23 +320,63 @@ print ("Voronoi cell area found")
 norm_area = []
 for i in range(0, len(area)):
     norm_area.append(area[i]/rand_mean_area)
+    
+###############################################################################
+# saving Voronoi area data
+with open(savelocation + filename + '_Voronoi_area.' + timestep + \
+          '.csv', 'w', newline='') as f_area:
+    writer=csv.writer(f_area)
+    writer.writerows([area, norm_area])
+    
+###############################################################################
+# Reading in the area of the random just settling simulation
+
+with open(savelocation + 'box512_ht_zero_loc_Voronoi_area.0.csv', \
+          'r', newline='') as areadata:
+    area_data = list(csv.reader(areadata, delimiter=","))
+norm_area_c = np.array(area_data[1], dtype=np.float)
 
 ###############################################################################    
 # plotting the normalized cell area as a pdf plot
     
 fig = plt.figure()
-sigma = np.std(norm_area)
-weight_area = np.ones_like(norm_area)/float(len(norm_area))
-n_area, bins_area, patches_area = plt.hist(norm_area, bins = 10, weights =\
-                                           weight_area)
+
+n_area_c, bins_area_c, patches_area_c = plt.hist(norm_area_c, bins = 100, \
+                                                 normed = 1, histtype = \
+                                                 'step', label = \
+                                                 'compared area histogram')
+
+n_area, bins_area, patches_area = plt.hist(norm_area, bins = 100, normed = 1,\
+                                           histtype = 'step', label = \
+                                           'area histogram')
+
+area_x = [0]
+area_x_index = 100
+while area_x_index > 0:
+    area_x.append(4 / area_x_index)
+    area_x_index = area_x_index - 1
+    
+f_area = []
+i_area = 0
+while i_area <= len(area_x) - 1:
+    y_area = area_x[i_area]
+    f_area.append(343/15*np.sqrt(7/(2*np.pi))*y_area**(5/2)*np.exp(-\
+                  (7/2)*y_area))
+    i_area = i_area+1
+    
+plt.plot(area_x, f_area, 'k-.', label = 'Ferenc and Neda')
+plt.legend(loc = 'best')
 plt.title('pdf of normalized cell area')
-plt.xlim(xmin = 0, xmax = max(norm_area) + 0.5)
 plt.xlabel('normalized Voronoi cell area')
 plt.ylabel('P.D.F')
-plt.show()   
+plt.xlim(xmin = 0, xmax = max(norm_area) + 0.5)
+plt.yscale('log', nonposy='clip')
+plt.yscale(ymin = .001, ymax = 1.3)
 
-eigvalarray = np.array(eigvalarray)
-eigvecarray = np.array(eigvecarray)
+plt.savefig(figurelocation + filename + '_area_pdf.' + timestep + \
+            '.svg', format = 'svg')   
+
+
 
 print ("Finding aspect ratio.")
 
@@ -285,43 +413,105 @@ for i in range(0, len(al)):
     
 ar = np.array(ar)
 
-<<<<<<< HEAD
-
-=======
->>>>>>> d0329e5874208fd060d5b3a1f9604ddfad5704a4
 print ("Aspect ratio found.")
+
+###############################################################################
+# saving Voronoi aspect ratio data
+with open(savelocation + filename + '_Voronoi_aspect_ratio.' + timestep + \
+          '.csv', 'w', newline='') as f_ar:
+    writer=csv.writer(f_ar)
+    writer.writerows(ar)
 
 ###############################################################################
 # attempted to color the Voronoi cell by aspect ratio
 
-#minima = min(ar)
-#maxima = max(ar)
-#
-#
-#norm = mpl.colors.Normalize(vmin=minima, vmax=maxima, clip=True)
-#mapper = cm.ScalarMappable(norm=norm, cmap=cm.Blues_r)
-#
-#
-#voronoi_plot_2d(vor, show_points=True, show_vertices=False, s=1)
-#for r in range(len(reg)):
-#    polygon = [vor_vert[i] for i in reg]
-#    plt.fill(*zip(*polygon), color=mapper.to_rgba(ar[r]))
-#plt.show()
+minima = min(ar)
+maxima = max(ar)
+cmap_ar = cm.autumn
+
+norms = mpl.colors.Normalize(vmin=minima, vmax=maxima, clip=True)
+mapper = cm.ScalarMappable(norm=norms, cmap=cmap_ar)
+
+ar_vor = voronoi_plot_2d(vor, show_points=True, show_vertices=False, s=1)
+for r in range(0, len(reg)):
+    reg_seg = reg[r]
+    polygon = [vor_vert[i] for i in reg_seg]
+    plt.fill(*zip(*polygon), color=mapper.to_rgba(ar[r]))
+plt.title('Voronoi regions colored by aspect ratio')
+plt.savefig(figurelocation + filename + '_Voronoi_regions_ar.' + timestep + \
+            '.svg', format = 'svg')
+
+
+fig_ar = plt.figure(figsize=(8, 3))
+ax1_ar = fig_ar.add_axes([0.05, 0.80, 0.9, 0.15])
+cb1_ar = mpl.colorbar.ColorbarBase(ax1_ar, cmap=cmap_ar, norm=norms, orientation \
+                                = 'horizontal')
+cb1_ar.set_label('Voronoi region aspect ratio')
+plt.savefig(figurelocation + filename + '_Voronoi_regions_ar_colorbar.' + \
+            timestep + '.svg', format = 'svg')
+
+###############################################################################
+# Reading in the aspect ratio of the random just settling simulation
+
+with open(savelocation + 'box512_ht_zero_loc_Voronoi_aspect_ratio.0.csv', \
+          'r', newline='') as ardata:
+    ar_data = list(csv.reader(ardata, delimiter=","))
+ar_data = np.array(ar_data,  dtype=np.float)
 
 ###############################################################################
 # plotting the pdf of the aspect ratio.
 
+# Starting with the plot of just settling time zero.
 fig = plt.figure()
-weights_ar = np.ones_like(ar)/float(len(ar))
-n_ar, bins_ar, patches_ar = plt.hist(ar, bins = 10, weights = weights_ar)
-plt.title('pdf of aspect ratio')
-plt.xlim(xmin = 0, xmax = max(ar) + 0.5)
+
+n_ar_c, bins_ar_c, patches_ar_c = plt.hist(ar_data, bins = 100, normed = 1, \
+                                     histtype = 'step', \
+                                     label = 'Compared aspect ratio')
+
+# Adding in the plot of the current runs aspect ratio
+n_ar, bins_ar, patches_ar = plt.hist(ar, bins = 100, normed = 1, \
+                                     histtype = 'step', \
+                                     label = 'aspect ratio histogram')
+
+plt.legend(loc = 'best')
+plt.title('histogram of aspect ratio')
 plt.xlabel('Voronoi cell aspect ratio')
 plt.ylabel('P.D.F')
-plt.show()
+plt.xlim(xmin = 0.5, xmax = max(ar) + 0.5)
+plt.yscale('log', nonposy='clip')
+plt.yscale(ymin = .001, ymax = 1)
+plt.savefig(figurelocation + filename + '_ar_hist.' + timestep + '.svg', \
+            format = 'svg')
 
 print ('Finding Voronoi cell orientation.')
 
+###############################################################################
+# attempted to color the Voronoi cell by normalized area
+
+minima_area = min(norm_area)
+maxima_area = max(norm_area)
+cmap_area = cm.autumn
+
+norms_area = mpl.colors.Normalize(vmin=minima_area, vmax=maxima_area, clip=True)
+mapper_area = cm.ScalarMappable(norm=norms_area, cmap=cmap_area)
+
+
+vor_area = voronoi_plot_2d(vor, show_points=True, show_vertices=False, s=1)
+for r in range(0, len(reg)):
+    reg_seg_area = reg[r]
+    polygon_area = [vor_vert[i] for i in reg_seg_area]
+    plt.fill(*zip(*polygon_area), color=mapper_area.to_rgba(norm_area[r]))
+plt.title('Voronoi regions colored by normalized area')
+plt.savefig(figurelocation + filename + '_Voronoi_regions_area.' + timestep + \
+            '.svg', format = 'svg')
+
+fig_area = plt.figure(figsize=(8, 3))
+ax1_area = fig_area.add_axes([0.05, 0.80, 0.9, 0.15])
+cb1_area = mpl.colorbar.ColorbarBase(ax1_area, cmap=cmap_area, norm=norms_area, \
+                                     orientation = 'horizontal')
+cb1_area.set_label('Voronoi region normalized area')
+plt.savefig(figurelocation + filename + '_Voronoi_regions_area.' + timestep + \
+            '.svg', format = 'svg')
 ###############################################################################
 # calculating the angle of the longest eigen vector and creating a rose diagram
 # of the orientation of that vector.
@@ -363,10 +553,19 @@ new_theta = np.concatenate([theta, theta_reverse])
 print ('Voronoi cell orinetation found')
 
 # creating the bins and bin values
+weight_rose = np.ones_like(new_theta)/float(len(new_theta))
 
 bin_edge = np.deg2rad(np.arange(-5, 360, 10))
-number_of_theta, bin_edge = np.histogram(new_theta, bin_edge)
+number_of_theta, bin_edge = np.histogram(new_theta, bin_edge, weights=weight_rose)
 number_of_theta = np.array(number_of_theta)
+less_than_mean = np.zeros_like(number_of_theta)
+
+mean_theta = np.mean(number_of_theta)
+
+for thetaindex in range(0, len(number_of_theta)):
+    if number_of_theta[thetaindex] <= mean_theta:
+        less_than_mean[thetaindex] = number_of_theta[thetaindex]
+        number_of_theta[thetaindex] = 0
 
 #for i in range(0, len(number_of_theta)):
 #    number_of_theta[i] = number_of_theta[i] / 2.0
@@ -376,10 +575,13 @@ fig = plt.figure()
 
 ax = plt.subplot(111, projection='polar')
 
-ax.bar(np.deg2rad(np.arange(0, 360, 10)), number_of_theta/2, width=np.deg2rad(10),\
+above_mean = ax.bar(np.deg2rad(np.arange(0, 360, 10)), number_of_theta/2, width=np.deg2rad(10),\
        bottom=0.0, color='g', edgecolor='k')
+below_mean = ax.bar(np.deg2rad(np.arange(0, 360, 10)), less_than_mean/2, width=np.deg2rad(10),\
+       bottom=0.0, color='b', edgecolor='k')
 ax.set_theta_zero_location('E')
 ax.set_theta_direction(1)
 ax.set_title('Rose Diagram of the "polygon orientation"', y=1.10, fontsize=15)
-plt.show()
+plt.savefig(figurelocation + filename + '_ar_rose.' + timestep + '.svg', \
+            format = 'svg')
 
