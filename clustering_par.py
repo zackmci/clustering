@@ -7,6 +7,27 @@
 #
 #  Last Modified 1/30/2018
 #
+# Author:
+# Zack McIntire
+#
+# Imputs (CSV)
+# particle location file
+# fluid file
+#
+# Outputs:
+#
+# --arrays-- (CSV)
+# - An array of the particle data for particles in the low particle volume 
+#   fraction portions of the domain.
+# - An array of the particled, nearest neighbor, and distance
+# - The rA, rE, and R value for the timestep
+# - Ripley's k value and L value
+# - Ripley's g value 
+#
+# --Figures-- (SVG)
+# - A plot of Ripley's L value over the radius away from the particle.
+# -A plot of Ripley's g value over the radius away from the particle.
+#
 #
 ###############################################################################
 # importing the needed modules

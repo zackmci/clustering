@@ -1,9 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Spyder Editor
-
-This is a temporary script file.
-"""
 ###############################################################################
 # voronoi_plot_area
 #
@@ -13,6 +7,9 @@ This is a temporary script file.
 #
 # date created:
 # 01/02/2018
+#
+# last modified:
+# 02/22/2018
 #
 # Author:
 # Zack McIntire
@@ -73,29 +70,16 @@ timestep = '0'
 #with open(filelocation + filename + '.csv', 'r') as csvfile:
 #    csv_data = list(csv.reader(csvfile, delimiter=","))
 
-#with open(filelocation2 + randfilename + '.' + '0.csv', 'r') as randfile:
-#    rand_data = list(csv.reader(randfile, delimiter=","))
-#rand_data = rand_data[1:]
-#
-#rand_len = len(rand_data)
-
 with open(filelocation2 + filename + '.' + timestep + '.csv', 'r') as csvfile:
     csv_data = list(csv.reader(csvfile, delimiter=","))
-#print (csv_data[:3])
+
 csvarray = np.array(csv_data[1:], dtype=np.float) # Remove headers and convert to floats
-#print (csvarray[:3])
 
 data_array = np.array(csvarray)
 
 with open(filelocation2 + resfile + '.' + timestep + '.csv', 'r') as csvres:
     res_data = list(csv.reader(csvres, delimiter=","))
 resarray = np.array(res_data[1:], dtype=np.float)
-
-#for i in range(0, len(csvarray)):
-#    if csvarray[i, 7] < x_max and csvarray[i, 7] > x_min and \
-#    csvarray[i, 8] < y_max and csvarray[i, 8] > y_min:
-#        data_array.append(csvarray[i])
-#data_array = np.array(data_array)
 
 ###############################################################################
 # Finding the Voronoi points and plotting the diagram
@@ -192,14 +176,6 @@ for i in range(0, len(vor_reg)):
     if ind != 1:
         reg.append(temp_reg)
 
-
-#x = [vor_vert[13, 0], vor_vert[6, 0], vor_vert[5, 0], vor_vert[4, 0],\
-#     vor_vert[12, 0], data_array[0, 7]]
-#y = [vor_vert[13, 1], vor_vert[6, 1], vor_vert[5, 1], vor_vert[4, 1],\
-#     vor_vert[12, 1], data_array[0, 8]]
-#fig = plt.figure()
-#plt.scatter(x, y)
-
 ###############################################################################
 # Finding the area of the Voronoi polygons
 
@@ -228,19 +204,13 @@ print ("Finding Voronoi cell area.")
 area = []
 eigvalarray = []
 eigvecarray = []
-#max_x = 512
-#max_y = 256
+
 for i in range(0, len(reg)):
     corners = []
     vor_reg_temp = np.array(reg[i])
     for n in vor_reg_temp:
         corners.append(vor_vert[n])
     corners = np.array(corners)
-#    for k in range(0, len(corners)):
-#        if corners[k, 0] < max_x:
-#            max_x = corners[k, 0]
-#        if corners[k, 1] < max_y:
-#            max_y = corners[k, 1]
     xy = corners.T
     eigvals, eigvecs = np.linalg.eig(np.cov(xy))
     eigvalarray.append(eigvals)
@@ -296,19 +266,12 @@ for i in range(0, len(rand_vor_reg)):
         rand_reg.append(temp_reg)
 
 rand_area = []
-#max_x = 512
-#max_y = 256
 for i in range(0, len(rand_reg)):
     rand_corners = []
     vor_reg_temp = np.array(rand_reg[i])
     for n in vor_reg_temp:
         rand_corners.append(rand_vor_vert[n])
     rand_corners = np.array(rand_corners)
-#    for k in range(0, len(corners)):
-#        if corners[k, 0] < max_x:
-#            max_x = corners[k, 0]
-#        if corners[k, 1] < max_y:
-#            max_y = corners[k, 1]
     xy = rand_corners.T
     rand_corners_sorted = PolygonSort(rand_corners)
     rand_area.append(PolygonArea(rand_corners_sorted))
@@ -375,8 +338,6 @@ plt.yscale(ymin = .001, ymax = 1.3)
 
 plt.savefig(figurelocation + filename + '_area_pdf.' + timestep + \
             '.svg', format = 'svg')   
-
-
 
 print ("Finding aspect ratio.")
 
@@ -566,9 +527,6 @@ for thetaindex in range(0, len(number_of_theta)):
     if number_of_theta[thetaindex] <= mean_theta:
         less_than_mean[thetaindex] = number_of_theta[thetaindex]
         number_of_theta[thetaindex] = 0
-
-#for i in range(0, len(number_of_theta)):
-#    number_of_theta[i] = number_of_theta[i] / 2.0
 
 # plotting the rose diagram
 fig = plt.figure()
