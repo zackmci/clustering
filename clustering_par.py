@@ -43,7 +43,7 @@ import time
 # variables for reading and writing files
 
 csv_array = []
-timestep = '800'
+timestep = '0'
 filelocation = '/wd2/csv_data_files/'
 #filelocation = '/home/zack/Documents/csv_data_files/'
 savelocation = '/home/zack/Documents/csv_data_files/'
@@ -146,7 +146,7 @@ print ('particles seperated into high and low volume fraction arrays: ',\
 # there is an array of high volume fraction particles.
 
 if len(part_high_vol_array) > 0:
-    with open(savelocation + filename + '_low_vol_frac.' + timestep + '.csv', \
+    with open(savelocation + filename + '_low_vol_frac_2.' + timestep + '.csv', \
               'w', newline='') as f:
         writer=csv.writer(f)
         writer.writerow(['ID', 'Diameter', 'Density', 'Velocity:0', \
@@ -285,7 +285,7 @@ print ('Nearest neighbor found in: ', end - start)
 ###############################################################################
 # Writing nearest neighbor data to csv
 
-with open(savelocation + filename + tablename + '.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + tablename + '_2.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(['original particle', 'nearest neighbor', 'distance'])
     writer.writerows(min_array)
@@ -312,7 +312,7 @@ print ('R actual = ', rA, '\n', 'R estimated = ', rE, '\n', 'R = ', R)
 ###############################################################################
 # Writing rA, rE, and R to a csv file
 
-with open(savelocation + filename + '_R.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + '_R_2.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(['rA', 'rE', 'R'])
     writer.writerow([rA, rE, R])
@@ -384,9 +384,12 @@ def ripley_k(i):
     print (radius[i])
 
     for n in range(0, new_part_num):
-        # This if statement is to correct for edge effects.  If the particle surface is within range of the edge
-        # of the domain the particle is not used as a source, but can be counted as within the radial distance
-        # of another particle.
+        # This if statement is to correct for edge effects.  If the particle 
+        # surface is within range of the edge of the domain the particle is 
+        # not used as a source, but can be counted as within the radial 
+        # distance of another particle. To do this the domain is divided by 
+        # the injection location, and looking at the array of particles that
+        # had a solid volume fraction of greater than 0.46.
         if len(part_high_vol_array) == 0:
             if csvarray[n, 7] >= radius[i] and csvarray[n, 7] <= x_len - radius[i] and \
             csvarray[n, 8] >= radius[i] and csvarray[n, 8] <= y_len - radius[i]:
@@ -453,7 +456,9 @@ print ("ripley's k value found in: ", end - start)
 
 # This is to correct for overlapping particles where the distance between
 # particles in the simulation could be less than 0.
-Kr[0] = 0
+Kr[0] = 0 # This is the distance from the particle center to the 
+          # particle boundary.
+Kr[1] = 0 # This is the distance to the next particle center.
 
 Lr = np.sqrt(Kr / np.pi)
 print ('k(r) = ', Kr, '\n', 'L(r) = ', Lr)
@@ -461,7 +466,7 @@ print ('k(r) = ', Kr, '\n', 'L(r) = ', Lr)
 #######################################################################################################################
 # Writing L(r) and K(r) to a csv file
 
-with open(savelocation + filename + lrdata + '.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + lrdata + '_2.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerows([Lr, Kr])
 
@@ -472,9 +477,9 @@ fig=plt.figure(figsize=(9,9))
 plt.plot(radius, Lr, 'r*-')
 plt.plot(radius, radius, 'k-')
 plt.title("Ripley's L value", fontsize = 18 )
-plt.xlabel('radius (r)', fontsize = 18)
+plt.xlabel('radius (cm)', fontsize = 18)
 plt.ylabel('L(r)', fontsize = 18)
-plt.savefig(figurelocation + filename + '_lr.' + timestep + '.svg', format='svg')
+plt.savefig(figurelocation + filename + '_lr_2.' + timestep + '.svg', format='svg')
 
 print ('Look for the L(r) plot.')
 
@@ -493,7 +498,7 @@ print ('g(r) = ', gr)
 #######################################################################################################################
 # writing g(r) to a csv file
 
-with open(savelocation + filename + grdata + '.' + timestep + '.csv', 'w', newline='') as f:
+with open(savelocation + filename + grdata + '_2.' + timestep + '.csv', 'w', newline='') as f:
     writer=csv.writer(f)
     writer.writerow(gr)
 
@@ -504,8 +509,8 @@ fig=plt.figure(figsize=(9,9))
 plt.plot(radius[1:len(radius)], gr, 'bo-')
 plt.plot(radius[1:len(radius)], np.ones(len(gr)), 'k-')
 plt.title("Ripley's g value (pair correlation)", fontsize = 18)
-plt.xlabel('radius (r)', fontsize = 18)
+plt.xlabel('radius (cm)', fontsize = 18)
 plt.ylabel('g(r)', fontsize = 18)
-plt.savefig(figurelocation + filename + '_gr.' + timestep + '.svg', format='svg')
+plt.savefig(figurelocation + filename + '_gr_2.' + timestep + '.svg', format='svg')
 
 print ('Look for the g(r) plot.')

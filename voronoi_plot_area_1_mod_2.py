@@ -61,9 +61,9 @@ figurelocation = '/home/zack/Documents/clustering_figures/'
 savelocation = '/home/zack/Documents/csv_data_files/'
 #randfilename = 'box512_ht_loc'
 #filename = 'test_case_20'
-filename = 'box512_ht_1_loc'
-resfile = 'box512_ht_1_res'
-timestep = '0'
+filename = 'box512_ht_loc_low_vol_frac'#_low_vol_frac'
+resfile = 'box512_ht_res'
+timestep = '400'
 
 ###############################################################################
 # Opening the necessary files
@@ -71,7 +71,7 @@ timestep = '0'
 #with open(filelocation + filename + '.csv', 'r') as csvfile:
 #    csv_data = list(csv.reader(csvfile, delimiter=","))
 
-with open(filelocation2 + filename + '.' + timestep + '.csv', 'r') as csvfile:
+with open(filelocation + filename + '.' + timestep + '.csv', 'r') as csvfile:
     csv_data = list(csv.reader(csvfile, delimiter=","))
 
 csvarray = np.array(csv_data[1:], dtype=np.float) # Remove headers and convert to floats
@@ -90,6 +90,23 @@ x_min = 0
 x_max = 512
 y_min = min(data_array[:, 8])
 y_max = max(data_array[:, 8])
+
+# finding the total area of space opccupied by the settling particles.
+res_array = []
+for volume_index in range(0, len(resarray)):
+    if 1 - resarray[volume_index, 0] < 0.46 and 1 - resarray[volume_index, 0] \
+    > 0:
+        res_array.append(resarray[volume_index, :])
+        
+res_array = np.array(res_array)
+
+# finding the height to make the random domain
+phis = 1 - np.mean(res_array[:, 0]) # solid volume fraction
+number_of_particles = len(data_array)
+particle_volume = 4 / 3 * np.pi *0.2**3 * number_of_particles # volume of particles
+total_volume = particle_volume / phis # volume of the domain
+total_area = total_volume / 0.4 # divide by the depth of the domain (particle radius)
+domain_height = total_area / 512 # The length of the domain should not change
  
 points = []
 for i in range(0, len(data_array)):
@@ -98,7 +115,7 @@ points = np.array(points)
 
 vor = Voronoi(points, qhull_options='Qbb Qc Qx')
 voronoi_plot_2d(vor, show_vertices = False)
-plt.savefig(figurelocation + filename + '_Voronoi_regions.' + timestep + \
+plt.savefig(figurelocation + filename + '_Voronoi_regions_2.' + timestep + \
             '.svg', format = 'svg')
 
 vor_vert = np.array(vor.vertices)
@@ -109,7 +126,7 @@ position = np.array(-1)
 def vert_remover(posindex):
     
     vol_frac = 0.46
-    box_dist = 3
+    box_dist = 13
 
     if vor_vert[posindex, 0] < x_max and vor_vert[posindex, 0] > x_min \
     and vor_vert[posindex, 1] < y_max and vor_vert[posindex, 1] > y_min:
@@ -125,18 +142,81 @@ def vert_remover(posindex):
                 volarray.append(resarray[vfindex])
         volarray = np.array(volarray)  
         #print(volarray[:3])
+        
+        # Making sure the 8 closest fluid cell corners have a volume fraction 
+        # greater than zero.
         distarray = []
+        distarray_2 = []
+        distarray_3 = []
+        distarray_4 = []
+        distarray_5 = []
+        distarray_6 = []
+        distarray_7 = []
+        distarray_8 = []
         ref_dist = 2
+        holder = ref_dist
+        ref_dist_2 = 4
+        holder2 = ref_dist_2
+        ref_dist_3 = 6
+        holder_3 = ref_dist_3
+        ref_dist_4 = 8
+        holder_4 = ref_dist_4
+        ref_dist_5 = 10
+        holder_5 = ref_dist_5
+        ref_dist_6 = 11
+        holder_6 = ref_dist_6
+        ref_dist_7 = 12
+        holder_7 = ref_dist_7
+        ref_dist_8 = 13
         for volindex in range(0, len(volarray)):
             dist_to_corner = np.sqrt((vor_vert[posindex, 0] - \
                                       volarray[volindex, 6])**2 + \
                                       (vor_vert[posindex, 1] - \
                                       volarray[volindex, 7])**2)
             if dist_to_corner < ref_dist:
+                holder = ref_dist
                 ref_dist = dist_to_corner
                 distarray = volarray[volindex]
+            elif dist_to_corner < ref_dist_2 and dist_to_corner > holder:
+                holder2 = ref_dist_2
+                ref_dist_2 = dist_to_corner
+                distarray_2 = volarray[volindex]
+            elif dist_to_corner < ref_dist_3 and dist_to_corner > holder2:
+                holder_3 = ref_dist_3
+                ref_dist_3 = dist_to_corner
+                distarray_3 = volarray[volindex]
+            elif dist_to_corner < ref_dist_4 and dist_to_corner > holder_3:
+                holder_4 = ref_dist_4
+                ref_dist_4 = dist_to_corner
+                distarray_4 = volarray[volindex]
+            elif dist_to_corner < ref_dist_5 and dist_to_corner > holder_4:
+                holder_5 = ref_dist_5
+                ref_dist_5 = dist_to_corner
+                distarray_5 = volarray[volindex]
+            elif dist_to_corner < ref_dist_6 and dist_to_corner > holder_5:
+                holder_6 = ref_dist_6
+                ref_dist_6 = dist_to_corner
+                distarray_6 = volarray[volindex]
+            elif dist_to_corner < ref_dist_7 and dist_to_corner > holder_6:
+                holder_7 = ref_dist_7
+                ref_dist_7 = dist_to_corner
+                distarray_7 = volarray[volindex]
+            elif dist_to_corner < ref_dist_8 and dist_to_corner > holder_7:
+                ref_dist_8 = dist_to_corner
+                distarray_8 = volarray[volindex]
         distarray = np.array(distarray)
-        if 1-distarray[0] >= vol_frac or 1-distarray[0] == 0:
+        distarray_2 = np.array(distarray_2)
+        distarray_3 = np.array(distarray_3)
+        distarray_4 = np.array(distarray_4)
+        distarray_5 = np.array(distarray_5)
+        distarray_6 = np.array(distarray_6)
+        distarray_7 = np.array(distarray_7)
+        distarray_8 = np.array(distarray_8)
+        if 1-distarray[0] >= vol_frac or (1-distarray[0] == 0 and \
+                      1-distarray_2[0] == 0 and 1-distarray_3[0] == 0 \
+                      and 1-distarray_4[0] == 0 and 1-distarray_5[0] == 0 \
+                      and 1-distarray_6[0] == 0 and 1-distarray_7[0] == 0 \
+                      and 1-distarray_8[0] == 0):
             return [posindex, 0]
         else:
             return [posindex, 1]
@@ -225,17 +305,17 @@ eigvecarray = np.array(eigvecarray)
 data_mean_area = np.mean(area)
     
 ###############################################################################
-# creating a random array of particles for an average area of Voronoi cells to 
-# normalize to.
+# creating a random array of particles to find the average area of Voronoi
+# polygons to find the ratio.
 
 num_of_part = len(csvarray)
-y_mid = np.mean(csvarray[:, 8])
-y_top = max(csvarray[:, 8])
-y_height = (y_top - y_mid) * 2
+#y_mid = np.mean(csvarray[:, 8])
+#y_top = max(csvarray[:, 8])
+#y_height = (y_top - y_mid) * 2
 
 rand_array = np.random.random((num_of_part, 2))
 rand_array[:, 0] = rand_array[:, 0] * 512
-rand_array[:, 1] = rand_array[:, 1] * y_height
+rand_array[:, 1] = rand_array[:, 1] * domain_height
 y_bottom = min(rand_array[:, 1])
 
 rand_vor = Voronoi(rand_array, qhull_options='Qbb Qc Qx')
@@ -246,7 +326,7 @@ rand_position = [-1]
 
 for indexr in range(0, len(rand_vor_vert)):
     if rand_vor_vert[indexr, 0] > x_max or rand_vor_vert[indexr, 0] < x_min \
-    or rand_vor_vert[indexr, 1] > y_height or rand_vor_vert[indexr, 1] < \
+    or rand_vor_vert[indexr, 1] > domain_height or rand_vor_vert[indexr, 1] < \
     y_bottom:
         rand_position.append(indexr)
         
@@ -287,7 +367,7 @@ for i in range(0, len(area)):
     
 ###############################################################################
 # saving Voronoi area data
-with open(savelocation + filename + '_Voronoi_area.' + timestep + \
+with open(savelocation + filename + '_Voronoi_area_2.' + timestep + \
           '.csv', 'w', newline='') as f_area:
     writer=csv.writer(f_area)
     writer.writerows([area, norm_area])
@@ -295,7 +375,7 @@ with open(savelocation + filename + '_Voronoi_area.' + timestep + \
 ###############################################################################
 # Reading in the area of the random just settling simulation
 
-with open(savelocation + 'box512_ht_zero_loc_Voronoi_area.0.csv', \
+with open(savelocation + 'box512_ht_zero_loc_Voronoi_area_2.0.csv', \
           'r', newline='') as areadata:
     area_data = list(csv.reader(areadata, delimiter=","))
 norm_area_c = np.array(area_data[1], dtype=np.float)
@@ -305,12 +385,14 @@ norm_area_c = np.array(area_data[1], dtype=np.float)
     
 fig = plt.figure()
 
-n_area_c, bins_area_c, patches_area_c = plt.hist(norm_area_c, bins = 100, \
+bins = np.linspace(0, 4, 100)
+
+n_area_c, bins_area_c, patches_area_c = plt.hist(norm_area_c, bins = bins, \
                                                  normed = 1, histtype = \
                                                  'step', label = \
                                                  'compared area histogram')
 
-n_area, bins_area, patches_area = plt.hist(norm_area, bins = 100, normed = 1,\
+n_area, bins_area, patches_area = plt.hist(norm_area, bins = bins, normed = 1,\
                                            histtype = 'step', label = \
                                            'area histogram')
 
@@ -336,7 +418,7 @@ plt.ylabel('P.D.F')
 plt.xlim(xmin = 0, xmax = 4)
 plt.yscale('log', nonposy='clip')
 
-plt.savefig(figurelocation + filename + '_area_pdf.' + timestep + \
+plt.savefig(figurelocation + filename + '_area_2_pdf.' + timestep + \
             '.svg', format = 'svg')   
 
 print ("Finding aspect ratio.")
@@ -378,13 +460,13 @@ print ("Aspect ratio found.")
 
 ###############################################################################
 # saving Voronoi aspect ratio data
-with open(savelocation + filename + '_Voronoi_aspect_ratio.' + timestep + \
+with open(savelocation + filename + '_Voronoi_aspect_ratio_2.' + timestep + \
           '.csv', 'w', newline='') as f_ar:
     writer=csv.writer(f_ar)
     writer.writerow(ar)
 
 ###############################################################################
-# attempted to color the Voronoi cell by aspect ratio
+# Coloring the Voronoi polygons by aspect ratio
 
 minima = min(ar)
 maxima = max(ar)
@@ -399,7 +481,7 @@ for r in range(0, len(reg)):
     polygon = [vor_vert[i] for i in reg_seg]
     plt.fill(*zip(*polygon), color=mapper.to_rgba(ar[r]))
 plt.title('Voronoi regions colored by aspect ratio')
-plt.savefig(figurelocation + filename + '_Voronoi_regions_ar.' + timestep + \
+plt.savefig(figurelocation + filename + '_Voronoi_regions_ar_2.' + timestep + \
             '.svg', format = 'svg')
 
 
@@ -408,13 +490,13 @@ ax1_ar = fig_ar.add_axes([0.05, 0.80, 0.9, 0.15])
 cb1_ar = mpl.colorbar.ColorbarBase(ax1_ar, cmap=cmap_ar, norm=norms, orientation \
                                 = 'horizontal')
 cb1_ar.set_label('Voronoi region aspect ratio')
-plt.savefig(figurelocation + filename + '_Voronoi_regions_ar_colorbar.' + \
+plt.savefig(figurelocation + filename + '_Voronoi_regions_ar_colorbar_2.' + \
             timestep + '.svg', format = 'svg')
 
 ###############################################################################
 # Reading in the aspect ratio of the random just settling simulation
 
-with open(savelocation + 'box512_ht_zero_loc_Voronoi_aspect_ratio.0.csv', \
+with open(savelocation + 'box512_ht_zero_loc_Voronoi_aspect_ratio_2.0.csv', \
           'r', newline='') as ardata:
     ar_data = list(csv.reader(ardata, delimiter=","))
 ar_c = np.array(ar_data[0],  dtype=np.float)
@@ -441,13 +523,13 @@ plt.ylabel('P.D.F')
 plt.xlim(xmin = 0.5, xmax = max(ar) + 0.5)
 plt.yscale('log', nonposy='clip')
 
-plt.savefig(figurelocation + filename + '_ar_hist.' + timestep + '.svg', \
+plt.savefig(figurelocation + filename + '_ar_hist_2.' + timestep + '.svg', \
             format = 'svg')
 
 print ('Finding Voronoi cell orientation.')
 
 ###############################################################################
-# attempted to color the Voronoi cell by normalized area
+# Coloring the Voronoi polygons by normalized area
 
 minima_area = min(norm_area)
 maxima_area = max(norm_area)
@@ -457,13 +539,13 @@ norms_area = mpl.colors.Normalize(vmin=minima_area, vmax=maxima_area, clip=True)
 mapper_area = cm.ScalarMappable(norm=norms_area, cmap=cmap_area)
 
 
-vor_area = voronoi_plot_2d(vor, show_points=True, show_vertices=False, s=1)
+vor_area = voronoi_plot_2d(vor, show_points=True, show_vertices=False, s=0.5)
 for r in range(0, len(reg)):
     reg_seg_area = reg[r]
     polygon_area = [vor_vert[i] for i in reg_seg_area]
     plt.fill(*zip(*polygon_area), color=mapper_area.to_rgba(norm_area[r]))
 plt.title('Voronoi regions colored by normalized area')
-plt.savefig(figurelocation + filename + '_Voronoi_regions_area.' + timestep + \
+plt.savefig(figurelocation + filename + '_Voronoi_regions_area_2.' + timestep + \
             '.svg', format = 'svg')
 
 fig_area = plt.figure(figsize=(8, 3))
@@ -471,7 +553,7 @@ ax1_area = fig_area.add_axes([0.05, 0.80, 0.9, 0.15])
 cb1_area = mpl.colorbar.ColorbarBase(ax1_area, cmap=cmap_area, norm=norms_area, \
                                      orientation = 'horizontal')
 cb1_area.set_label('Voronoi region normalized area')
-plt.savefig(figurelocation + filename + '_Voronoi_regions_area_colorbar.' + timestep + \
+plt.savefig(figurelocation + filename + '_Voronoi_regions_area_colorbar_2.' + timestep + \
             '.svg', format = 'svg')
 ###############################################################################
 # calculating the angle of the longest eigen vector and creating a rose diagram
@@ -487,7 +569,7 @@ for i in range(0, len(al)):
 theta = np.array(theta)
 
 # making sure the theta values can be plotted on the rose diagram. increasing 
-# values below the rose diagram threshould by 2pi
+# values below the rose diagram threshold by 2pi
 for i in range(0, len(theta)):
     if theta[i] <= np.deg2rad(-5):
         theta[i] = theta[i] + (2 * np.pi)
@@ -541,6 +623,6 @@ ax.legend((above_mean, below_mean), ('above mean', 'below mean'))
 ax.set_theta_zero_location('E')
 ax.set_theta_direction(1)
 ax.set_title('Rose Diagram of the "polygon orientation"', y=1.10, fontsize=15)
-plt.savefig(figurelocation + filename + '_ar_rose.' + timestep + '.svg', \
+plt.savefig(figurelocation + filename + '_ar_rose_2.' + timestep + '.svg', \
             format = 'svg')
 
